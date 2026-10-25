@@ -1,0 +1,17 @@
+{
+  "name": "mdcode2run",
+  "version": "0.1.0",
+  "description": "Markdown 代码执行引擎：块角色标注、章会话、file= 物化、过期链、重放、作业——与编辑器无关的核心，呈现归宿主。",
+  "main": "index.js",
+  "bin": {
+    "mdcode2run": "bin/mdcode2run.js"
+  },
+  "scripts": {
+    "test": "node test/run-all.js",
+    "test:quick": "node test/run-all.js --quick"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ssh2": "^1.16.0"
+  }
+}

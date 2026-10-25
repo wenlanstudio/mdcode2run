@@ -1,0 +1,86 @@
+/**
+ * sessions.js 验收脚本——零依赖，`node sessions.test.js` 直接跑。注册表的建立/复用/
+ * 死亡重建/空闲回收/统一销毁，全部用假会话（不碰任何 JVM）。
+ */
+const assert = require("assert")
+const { SessionManager } = require("../sessions")
+
+let passed = 0
+const failures = []
+const t = (name, fn) => {
+  try { fn(); passed += 1 } catch (e) { failures.push(`${name}\n    ${e.message}`) }
+}
+
+const fakeSession = () => ({ alive: true, destroyed: "", destroy(reason = "") { this.destroyed = reason } })
+
+const tick = () => new Promise(resolve => setTimeout(resolve, 0))
+
+;(async () => {
+  t("acquire 建一次、复用同一会话（factory 只调一次）", async () => {
+    const m = new SessionManager({ reapMs: 3600_000 })
+    let created = 0
+    const factory = () => (created += 1) && fakeSession()
+    const a = await m.acquire("k", factory)
+    const b = await m.acquire("k", factory)
+    assert.strictEqual(a, b)
+    assert.equal(created, 1)
+    m.destroyAll()
+  })
+
+  t("同 key 并发 acquire 共享同一次创建（不建两个 JVM）", async () => {
+    const m = new SessionManager({ reapMs: 3600_000 })
+    let created = 0
+    const factory = () => new Promise(resolve => setTimeout(() => resolve(fakeSession(), (created += 1)), 5))
+    const [a, b] = await Promise.all([m.acquire("k", factory), m.acquire("k", factory)])
+    assert.strictEqual(a, b)
+    assert.equal(created, 1)
+    m.destroyAll()
+  })
+
+  t("死会话在下次 acquire 时重建，旧的先被 destroy 清理", async () => {
+    const m = new SessionManager({ reapMs: 3600_000 })
+    const first = await m.acquire("k", fakeSession)
+    first.alive = false
+    const destroyCalls = []
+    first.destroy = reason => destroyCalls.push(reason)
+    const second = await m.acquire("k", fakeSession)
+    assert.notStrictEqual(first, second)
+    assert.deepEqual(destroyCalls, ["dead"])
+    m.destroyAll()
+  })
+
+  t("destroy / destroyAll 落到会话的 destroy；stats 如实", async () => {
+    const m = new SessionManager({ reapMs: 3600_000 })
+    const a = await m.acquire("a", fakeSession)
+    await m.acquire("b", fakeSession)
+    assert.equal(m.stats().length, 2)
+    m.destroy("a", "manual")
+    assert.equal(a.destroyed, "manual")
+    assert.equal(m.stats().length, 1)
+    m.destroyAll("shutdown")
+    assert.equal(m.stats().length, 0)
+  })
+
+  t("空闲回收：超过 idleMs 没 acquire 的会话被回收", async () => {
+    const m = new SessionManager({ idleMs: 20, reapMs: 5 })
+    const a = await m.acquire("k", fakeSession)
+    await new Promise(resolve => setTimeout(resolve, 60))
+    assert.equal(a.destroyed, "idle")
+    assert.equal(m.stats().length, 0)
+    m.destroyAll()
+  })
+
+  t("factory 抛错 → acquire reject，注册表不留死条目", async () => {
+    const m = new SessionManager({ reapMs: 3600_000 })
+    await assert.rejects(() => m.acquire("k", () => { throw new Error("no jdk") }))
+    assert.equal(m.stats().length, 0)
+    // 同 key 再来一次：重新尝试（不被上次的失败卡死）
+    const ok = await m.acquire("k", fakeSession)
+    assert.ok(ok.alive)
+    m.destroyAll()
+  })
+
+  console.log(`通过 ${passed} 项${failures.length ? `，失败 ${failures.length} 项` : ""}`)
+  for (const f of failures) console.log(`  ✗ ${f}`)
+  process.exit(failures.length ? 1 : 0)
+})()
