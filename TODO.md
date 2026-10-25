@@ -4,13 +4,14 @@
 
 ## 进行中 / 下一步
 
-- [ ] **P1b 放映执行桥接**：md2slides 的 Typora 壳（`host/typora`）在 `deck.run()` resolve
-      后挂装饰器——可跑的代码块注入 ▶/⏩（带 `data-md2s-activatable`，承接面已就位），
-      点击调 `createEngine().run(ctx, { onChunk })`，结果浮层照 deck-out 的形状做
-      （状态条 + 单终端 + 翻页键可达）。
-  - [ ] 前置裁决·引擎分发：开发期 `"mdcode2run": "file:../mdcode2run"`（发布期再定打包）
-  - [ ] 前置裁决·单引擎实例：同一 Typora 进程里编辑态壳与放映壳共享一个 createEngine()
-        ——否则同章两个 JVM、两份会话状态
+- [x] **P1b 放映执行桥接**（2026-10-25 代码完成，md2slides 侧 `host/typora/exec-bridge.js`）：
+      deck 就绪后装饰 ▶/⏩（`data-md2s-activatable`；分页切片自动还原成源码整块再定位），
+      点击调 `engine.run/replay`，结果浮层（流式 + 表/图 + 会话 HUD + 作业计时终止，
+      Enter/Esc 关闭且不惊动播放器键盘）。jsdom + 真引擎全链路测试过。
+  - [x] 引擎分发：**没用 file: 包依赖**（会拖垮 CI 的 npm ci）——改四级路径回退解析
+        （EXEC_ENGINE_PATH → 部署副本 engine/ → node_modules → 生态兄弟目录），缺失静默降级
+  - [x] 单引擎实例：桥内按文档路径缓存引擎，跨放映存活；壳 stop 时统一 dispose
+  - [ ] Typora 实机验收走查（下条）
 - [ ] **验收走查**：wordcount 标本在 md2slides 放映里跑通实训篇重放链
       （setup → 步骤二 → 步骤三）
 
