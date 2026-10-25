@@ -12,17 +12,17 @@
         （EXEC_ENGINE_PATH → 部署副本 engine/ → node_modules → 生态兄弟目录），缺失静默降级
   - [x] 单引擎实例：桥内按文档路径缓存引擎，跨放映存活；壳 stop 时统一 dispose
   - [ ] Typora 实机验收走查（下条）
+- [x] **code-exec 退役存档**（2026-10-25）：完整快照存于 `docs/legacy-code-exec/`
+      （含说明：各部分下落）；Typora-2 旧环境保留作二级备份。**不做薄壳化**——
+      编辑态执行改为 md2slides 壳的未来功能（壳内 editrender 同族），见其 TODO wishlist
 - [ ] **验收走查**：wordcount 标本在 md2slides 放映里跑通实训篇重放链
       （setup → 步骤二 → 步骤三）
 
 ## 之后
 
-- [ ] **P2 code-exec 编辑态薄壳化**：base.js 只留 UI 四类活（按钮/卡片/渲染/放映接线），
-      运行编排骨架（`_sessionCtx` + `_run` 流程）换成调引擎；**新旧两路并行开关**，
-      课堂验证够了再切。切换时：会话注册表生命周期从模块级单例改为随插件
-      （插件卸载/Typora 关闭时 dispose）
-- [ ] **P3 marp 退役**：删 base.js 的 4 个 marp 事件监听与 iframe 注入（放映态已由
-      md2slides 壳接管），marp 插件下岗
+- [x] **P2/P3（原"薄壳化 / marp 退役"）——方向改判，不再执行**（2026-10-25）：产品
+      收敛为双引擎双宿主，code-exec 整体退役存档（见上），不保留 obgnail 框架路径；
+      marp 已随 md2slides 新壳自然淘汰。编辑态执行若做，归 md2slides 壳（见其 wishlist）
 - [ ] **P4 引擎内功**（按痛感排期，不阻塞宿主）：
   - [ ] 三个常驻 harness（java-session / python-session / shell 的协议部分）收敛成一个
         协议框架——JDK/anaconda 升级砸协议时只改一处；词汇参考 Jupyter message schema
