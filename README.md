@@ -2,6 +2,11 @@
 
 Markdown 代码执行引擎：**块角色标注 + 章会话 + file= 物化 + 过期链 + 重放 + 作业**。
 无头核心——**引擎不知道 DOM 的存在**，结果只经结果契约 + 事件流交付，
+
+> 设计规范见 [`DESIGN.md`](./DESIGN.md)（两轴分离、六层配置、marker 语义、执行日志/stale、复现模式、不做清单）。README 是使用说明，DESIGN 是设计权威，二者冲突以 DESIGN 为准。
+> 围栏标注规则见 [`FENCE.md`](./FENCE.md)；AI 协作规范见 [`AGENTS.md`](./AGENTS.md)。
+
+呈现归宿主
 呈现归宿主（[md2slides](../md2slides) 放映器或任意自定义宿主）。
 
 与 md2slides 是姊妹引擎：一个管"怎么呈现"，一个管"怎么执行"，共享同一套架构铁律——
@@ -61,6 +66,9 @@ engine.dispose()                          // 宿主关文档时回收全部常�
 | tunnel | 远端集群操作（`[user@host ~]$` 提示符自动路由 ssh） | hdfs / hadoop | shell 模块路由 |
 
 ## 块角色词汇表（fence info-string）
+
+info-string 的权威规则见 [`FENCE.md`](./FENCE.md)（语法、冲突矩阵、消费状态、示例）。
+下表是简版速查：
 
 | 标注 | 名义 | 行为 |
 |---|---|---|
