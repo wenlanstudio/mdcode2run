@@ -69,7 +69,9 @@ mdcode2run 是 Markdown 代码执行引擎：**块角色标注 + 章会话 + fil
   languages/             五个语言模块：认语言、查环境、给选项、路由 runner
   runners/               八个执行器（纯 Node）：python(.session) / java(.session) /
                          shell / query / hive(beeline) / job
-  test/                  十套测试 + run-all.js 跑批器 + fixtures/ 标本
+  test/                  十套测试 + run-all.js 跑批器 + fixtures/ 测试标本
+  sample/                可运行讲义样本（老师参照用）：python/java 基础，
+                         真跑验证过；specimen 命名沿用
   lab/mrjob/             实验原型：一文档一 MapReduce 作业（独立于主引擎，
                          npm run test:mrjob，不在 run-all 批里）
 ```
@@ -108,8 +110,9 @@ node test/fences.test.js   # 单套直接跑（每套都是独立进程、零依
 ```
 
 门控环境变量：`MDX_HIVE_HOST/USER/PASSWORD`、`MDX_MYSQL_HOST/USER/PASSWORD` 等；
-对应段在环境缺失时**打印跳过说明并计入通过**，不是失败。标本在 `test/fixtures/`
-随仓库分发；「环境可跳过 + 标本入库」是 CI（ubuntu + windows）全绿的前提。
+对应段在环境缺失时**打印跳过说明并计入通过**，不是失败。测试标本在 `test/fixtures/`
+随仓库分发（教学样本另见 `sample/`，二者分开：fixtures 面向 CI 走查，sample 面向老师参照）；
+「环境可跳过 + 标本入库」是 CI（ubuntu + windows）全绿的前提。
 
 **测试壳铁律**：每套测试自己实现 `t(name, fn)` 微壳。**异步用例必须被 await 到
 process.exit 之前落定**——`t()` 同步调用 async fn、末尾直接 `process.exit()`，会让
