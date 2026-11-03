@@ -108,7 +108,6 @@ const main = async () => {
         b.role !== "code" ? b.role : "",
         b.job ? "job" : "",
         b.file ? `file=${b.file}` : "",
-        b.session ? `session=${b.session}` : "",
         ...b.problems,
       ].filter(Boolean).join(" · ")
       console.log(`${String(b.line + 1).padStart(5)}  ${b.lang.padEnd(8)} ${marks}`)
@@ -128,7 +127,7 @@ const main = async () => {
     else process.stderr.write(`[stderr] ${info.text}`)
   }
   const started = Date.now()
-  const result = cmd === "replay"
+  const result = cmd === "replay" || args.replay
     ? await engine.replay(ctx, { onChunk, timeout: args.timeout })
     : await engine.run(ctx, { onChunk, timeout: args.timeout })
 
