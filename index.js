@@ -114,8 +114,7 @@ const createEngine = ({ config = {}, documentPath = "", documentDir = "" } = {})
         runnable: !!family && RUNNABLE_ROLES.has(f.meta.role) && f.meta.problems.length === 0,
         line: f.line, end: f.end,
         role: f.meta.role, job: !!f.meta.job,
-        file: f.meta.file, session: f.meta.session,
-        dialect: f.meta.dialect, workdir: f.meta.workdir,
+        file: f.meta.file,
         problems: f.meta.problems,
       }
     })

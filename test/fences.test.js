@@ -36,12 +36,14 @@ t("带引号的值（路径含空格）", () => {
   assert.equal(parseFenceInfo('text file="my data.txt"').meta.file, "my data.txt")
   assert.equal(parseFenceInfo("csv file='a b.csv'").meta.file, "a b.csv")
 })
-t("session / dialect / workdir", () => {
+t("session=/dialect=/workdir= 已按 DESIGN §12 移除 → 记未知标注 problem，块降级展示", () => {
   const { meta } = parseFenceInfo("sql dialect=hive session=cluster workdir=D:/tmp")
-  assert.equal(meta.dialect, "hive")
-  assert.equal(meta.session, "cluster")
-  assert.equal(meta.workdir, "D:/tmp")
   assert.equal(meta.role, "code")
+  assert.equal(meta.dialect, undefined)
+  assert.equal(meta.session, undefined)
+  assert.equal(meta.workdir, undefined)
+  assert.equal(meta.problems.length, 3, JSON.stringify(meta.problems))
+  assert.ok(meta.problems.every(p => p.includes("未知标注")), JSON.stringify(meta.problems))
 })
 t("demo + setup → invalid + problem", () => {
   const { meta } = parseFenceInfo("java demo setup")
@@ -81,11 +83,11 @@ t("空 info → 空 lang, code", () => {
   assert.equal(lang, "")
   assert.equal(meta.role, "code")
 })
-t("setup + session= 合法共存（引导块也可显式归属会话）", () => {
+t("setup 块带已移除的 session= → problem 非空，不再参与执行（旧文档安全降级）", () => {
   const { meta } = parseFenceInfo("shell setup session=cluster")
   assert.equal(meta.role, "setup")
-  assert.equal(meta.session, "cluster")
-  assert.deepEqual(meta.problems, [])
+  assert.equal(meta.session, undefined)
+  assert.ok(meta.problems.some(p => p.includes("未知标注")), JSON.stringify(meta.problems))
 })
 t("job 旗标：执行模式而非角色——role 仍 code，meta.job=true", () => {
   const { meta } = parseFenceInfo("bash job")
@@ -105,11 +107,12 @@ t("job 重复出现只算一次", () => {
   assert.equal(meta.job, true)
   assert.deepEqual(meta.problems, [])
 })
-t("job + session= 合法共存（作业块也可显式归属会话）", () => {
+t("job 旗标不受未知标注影响：problems 记录但 job 语义不变", () => {
   const { meta } = parseFenceInfo("bash job session=cluster")
   assert.equal(meta.job, true)
   assert.equal(meta.role, "code")
-  assert.equal(meta.session, "cluster")
+  assert.equal(meta.session, undefined)
+  assert.ok(meta.problems.some(p => p.includes("未知标注")), JSON.stringify(meta.problems))
 })
 
 // ---------- parseCodeExecFrontMatter ----------

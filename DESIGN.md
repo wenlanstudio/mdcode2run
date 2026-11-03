@@ -2,7 +2,8 @@
 
 mdcode2run 的设计规范。权威来源——README/TODO/FENCE 的设计叙事与此冲突时，以此为准。
 
-> 现状代码（v0.1）与本文有差距：`session=`/`dialect=`/`workdir=` 已解析但本设计判定删除；执行日志、stale、preset、chapter 层配置尚未实现。差距清单见 §13。
+> 现状代码（v0.1）与本文有差距：执行日志、stale、preset、chapter 层配置尚未实现。
+> 差距清单见 §13。
 
 ## 1. 设计前提
 
@@ -276,7 +277,7 @@ tech 是 4 个 schema，course 是 6 个薄装订，engine 一份秘密。集群
 
 | 项 | DESIGN | v0.1 现状 |
 |---|---|---|
-| `session=`/`dialect=`/`workdir=` | 删除 | 解析中，路由未接（TODO 已记） |
+| `session=`/`dialect=`/`workdir=` | **已删除（2026-11-03）**：解析层移除，写它们记未知标注 problem、块安全降级 |
 | preset（tech/course/doc） | 六层配置 | 三层（fence/front-matter/engine），无 preset/tech/course |
 | chapter 层配置 | 有（h1 子树覆盖） | 无 |
 | `override:` fence escape | 有 | 无 |

@@ -26,10 +26,12 @@ DESIGN.md 是设计权威——本文件记录"做到哪了"与"下一步"，不
         beeline 的 query 族（`languages/hive.js` + `runners/hive.js`，注册进 `index.js`
         LANGUAGES）→ deck 自动给 ▶；连接由引擎配置 `hive.*` + 前言 `code-exec.hive.*` 覆盖
         （PASSWORD 仅引擎层）。测试 `test/hive.test.js`（解析+URL 夹具，真实 HS2 由
-        MDX_HIVE_HOST 门控）。**尚未接线**：` ```sql dialect=hive ` 仍走 mysql（见下）。
-  - [ ] 词汇表接线：`session=`（跨章具名会话）、`dialect=` 在 `sql` 围栏上消费
-        （` ```sql dialect=hive ` → 改走 beeline，而非 mysql；当前 hive 只接了 `hive` 直标围栏）、
-        `workdir=`（解析已就位，消费未接）
+        MDX_HIVE_HOST 门控）。（原记「` ```sql dialect=hive ` 尚未接线」已随词汇表
+        瘦身作废——`dialect=` 删除，SQL 方言一律直标围栏。）
+  - [x] **词汇表瘦身**（2026-11-03，DESIGN §12 裁决落地）：`session=`/`dialect=`/
+        `workdir=` 三个冗余标注已从解析层删除（fences.js META_KEYS 只留 `file=`）。
+        写它们记 `未知标注` problem、块安全降级为展示（旧文档不炸，只是对应块不跑）。
+        SQL 方言用直标围栏 ` ```hive ` 等；跨章具名会话与自定义工作目录属 v2 储备。
   - [ ] tunnel 镜像上传：会话建立时把章工作目录上传远端 `~/md-exec/<doc>/<chapter>/`
         （"在 node0 上 hdfs dfs -put"靠它成立；上集群课前需要）
 - [ ] **CI**：仓库当前没有 `.github/workflows`（尚未接）；且 `test:quick` 仍依赖本机标本与

@@ -17,7 +17,7 @@ mdcode2run 怎么对待一个代码块，**全部由围栏开启行的 info-stri
 - **`lang` 在最前**：小写化后用于路由语言模块；空则视为不支持。
 - `lang` 之后是空格 / 制表符分隔的 token，分两类：
   - **旗标**（裸词）：`demo` / `setup` / `job`
-  - **键值**：`file=` / `session=` / `dialect=` / `workdir=`
+  - **键值**：`file=`
 - 值可单双引号包住（路径含空格时必须加引号）：`file="my data.csv"`。
 - **未知 token 一律忽略**；但未知的 `key=value` 记入 `problems`（多半是拼错标注）。
 - 值大小写**原样保留**；键名与旗标小写化后识别。
@@ -99,40 +99,19 @@ date,amount
   违反记 `problems`，块降级为 `invalid`。
 - 语言标记随意（`csv` / `text` 都行）——`file=` 一旦出现，块角色就是 `file`，不看语言。
 
-### `session=<名>` —— 具名会话
+### ~~`session=<名>`~~ / ~~`dialect=<名>`~~ / ~~`workdir=<路径>`~~ —— 已移除
 
-````
-```python session=explore
-df.head()
-```
-````
+三个键值标注**已按 DESIGN §12 删除**（v0.1 曾解析存档但从未接线，六门课验证零需求）。
+现在写它们会记 `未知标注` problem，块降级为展示块（不执行、不物化），problems
+消息会点名是哪个标注——旧文档带这些标注不会炸，只是对应块不再跑。
 
-**当前状态：已解析、存入块记录，但路由未接线。** 会话身份实际用的是
-「文档路径 + 章行号 + 语言族」（见 §7），`session=` 标注暂不影响会话归属。
-词汇保留是为后续跨章具名会话铺路。
+替代写法：
 
-### `dialect=<名>` —— 方言
-
-````
-```sql dialect=hive
-SELECT * FROM users;
-```
-````
-
-**当前状态：已解析、存入块记录，但消费未接线。** ` ```sql dialect=hive ` 目前仍走
-mysql（mysql 模块认 `sql` / `mysql`），不会改走 beeline。要用 hive，请用直标围栏
-` ```hive ` / `hql` / `hiveql` / `sparksql`（见 §5）。
-
-### `workdir=<路径>` —— 工作目录
-
-````
-```bash workdir=/tmp/job1
-hadoop jar ...
-```
-````
-
-**当前状态：已解析、存入块记录，但消费未接线。** 章工作目录实际由「文档路径 + 章行号」
-派生（见 §7），`workdir=` 标注暂不覆盖它。
+| 旧意图 | 现在怎么做 |
+| --- | --- |
+| ` ```sql dialect=hive ` 切方言 | 直接用直标围栏 ` ```hive ` / `hql` / `hiveql` / `sparksql` |
+| ` ```python session=explore ` 具名会话 | 章（h1）就是会话边界——把块放进目标章即可 |
+| ` ```bash workdir=/tmp/job1 ` 换目录 | 章工作目录由「文档路径 + 章行号」派生，块内代码自己 `cd` / 用绝对路径 |
 
 ## 5. 语言标签
 
@@ -174,7 +153,9 @@ code-exec:
 | 未知 `key=`                   | 角色照常         | `未知标注 key=`                    |
 | 重复同 `key=`                 | 用第一个         | `重复标注 key=`                    |
 | `file=` 值非法                | `invalid`        | `file= 须为章工作目录内的相对路径` |
-| `dialect=`/`workdir=`/`session=` 值空 | 角色照常 | `key= 值为空`                     |
+
+（`session=`/`dialect=`/`workdir=` 已删除——写它们命中上一行「未知 key=」规则，
+记 problem、块降级展示，见 §4。）
 
 **`problems` 非空的块不参与执行 / 物化 / 重放，只作展示。** 这是有意为之——
 拼错标注宁可静默降级，也别让讲义在讲台上炸。
@@ -191,8 +172,7 @@ h1（`# 标题`，行首 0–3 空格）是教学单元 = 会话边界。规则�
 - 首个 h1 之前的内容属于**隐式首章**（title 为空串），仅当其中确有围栏才保留；
   不规范文档没 h1 时整篇落进这一个隐式章，无需任何兼容分支。
 
-> `session=` / `workdir=` 标注就是为打破「章 = 会话」的默认而生（跨章具名会话、
-  自定义工作目录），但 v0.1 这两个还没接线（见 §4）。
+（跨章具名会话、自定义工作目录属于 v2 储备，见 DESIGN §12——v1 章 = 会话是唯一规则。）
 
 ## 8. 文档级默认（front-matter `code-exec:`）
 
@@ -248,26 +228,20 @@ SELECT word, COUNT(*) FROM wc GROUP BY word;
 ````
 ```bash demo setup              角色冲突（demo + setup）
 ```csv file=/abs/path.csv       file= 用了绝对路径
-```python session=              session= 值为空
 ```bash job setup               job 与 setup 互斥
 ```
 ````
 
-**被解析但不生效（v0.1 未接线，不报错也不降级）**
+**记 problem 降级展示（标注已删除，见 §4）**
 
 ````
-```sql dialect=hive    仍走 mysql，不会改走 beeline
-```bash workdir=/tmp   工作目录仍按章派生，不覆盖
-```python session=exp   会话身份仍按章+语言，不认这个名字
+```python session=exp    未知标注 session= → 块不执行
+```sql dialect=hive      未知标注 dialect= → 用 hive 请直标 ```hive 围栏
 ```
 ```
 
 ## 10. 已知限制（与 `TODO.md` 对齐）
 
-- `dialect=` 在 `sql` 围栏上**未接线**——` ```sql dialect=hive ` 仍走 mysql。
-  要用 hive，用直标围栏 ` ```hive ` 等。
-- `workdir=` 解析已就位，消费未接。
-- `session=` 解析已就位，跨章具名会话路由未接。
 - 块正文里的 `[user@host ~]$` 提示符是 **shell 模块的 tunnel 路由判据**，不在
   info-string 里——写法见 `runners/shell.js::parsePromptTarget`。
 

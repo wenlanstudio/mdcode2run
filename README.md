@@ -76,9 +76,10 @@ info-string 的权威规则见 [`FENCE.md`](./FENCE.md)（语法、冲突矩阵�
 | `demo` | 示意块 | 不可执行，伪代码 / 终端转写 |
 | `setup` | 引导块 | 会话建立时自动先跑，要求幂等 |
 | `file=<相对路径>` | 文件块 | 物化进章工作目录（跨语言文件总线），不可执行 |
-| `session=<名>` | 会话归属 | 显式命名会话（词汇已解析，路由待接） |
-| `dialect=<名>` / `workdir=<路径>` | 方言 / 工作目录 | 均已解析；`dialect` 只在 `sql` 围栏上待接线（hive 直标围栏已可用），`workdir` 尚未被消费 |
 | `job` | 作业模式 | 异步启动 + 日志流 + 树杀终止；与 demo/setup/file 互斥 |
+
+（`session=`/`dialect=`/`workdir=` 已按 DESIGN §12 删除——六门课零需求。
+写它们记 `未知标注` problem、块降级展示；SQL 方言用直标围栏 ` ```hive ` 等。）
 
 ## 配置三层
 
@@ -137,5 +138,4 @@ TODO.md                路线图与已知问题
 - mysql / hive 密码只放引擎层配置；前言层无权携带（讲义分享/进 git 的前提）。
 - Hive 走 beeline：`hive.CLIENT` 需指向可直接执行的 wrapper。beeline 由 Hive 发行版提供
   （Hadoop 发行版不含）；Windows 上 `beeline.cmd` 不能直接 spawn，需包一层可执行入口。
-- ` ```sql dialect=hive ` 尚未接线（仍走 mysql）；当前可用的是直标围栏
-  ` ```hive `/`hql`/`hiveql`/`sparksql `。
+- SQL 方言用直标围栏：` ```hive `/`hql`/`hiveql`/`sparksql `（`dialect=` 标注已删除）。

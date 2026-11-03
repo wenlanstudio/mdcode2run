@@ -11,18 +11,20 @@
  */
 
 /**
- * 块角色词汇表与标注解析（DESIGN.md §3）。
+ * 块角色词汇表与标注解析（DESIGN.md §3/§5）。
  *
  * fence info-string 语法：语言在前，其后空格分隔的标注——
  *   旗标：demo（示意块）/ setup（引导块）/ job（作业模式：异步启动、日志流、可终止）
- *   键值：file=<相对路径> / session=<名> / dialect=<名> / workdir=<路径>
+ *   键值：file=<相对路径>
  * 值可用单双引号包住（路径含空格时）。job 是**执行模式**不是角色——块仍是 code，
  * 但与 demo/setup/file 互斥（示意块不该起作业；setup 要求幂等，起作业不幂等；
  * 文件块不执行）。未知 token 一律忽略，但未知的 key=value 记入 problems（多半是
  * 拼错标注）；problems 非空的块不参与执行 / 物化，只作展示。
+ * （session=/dialect=/workdir= 已按 DESIGN §12 移除——六门课零需求，写成未知标注
+ *  自动降级为展示块，problems 消息会点名它们。）
  */
 const META_FLAGS = { demo: "demo", setup: "setup" }
-const META_KEYS = new Set(["file", "session", "dialect", "workdir"])
+const META_KEYS = new Set(["file"])
 const META_TOKEN = /([A-Za-z][\w-]*)[ \t]*=[ \t]*(?:"([^"]*)"|'([^']*)'|([^\s]*))|(\S+)/g
 
 // file= 必须是章工作目录内的相对路径：禁空、禁绝对、禁 .. 逃逸
@@ -31,8 +33,7 @@ const badRelPath = p => !p || /^[\\/]/.test(p) || /^[A-Za-z]:/.test(p) || p.spli
 /**
  * 解析 fence info-string。
  * @param {string} info 围栏开启行的标注串（语言 + 标注）
- * @returns {{lang: string, meta: {role: string, job?: boolean, file?: string,
- *   session?: string, dialect?: string, workdir?: string, problems: string[]}}}
+ * @returns {{lang: string, meta: {role: string, job?: boolean, file?: string, problems: string[]}}}
  *   role ∈ code | demo | setup | file | invalid（冲突）；值保留原样大小写。
  */
 const parseFenceInfo = info => {
@@ -68,7 +69,7 @@ const parseFenceInfo = info => {
   if (jobRequested && !job) { role = "invalid"; problems.push("job 与 demo/setup/file 互斥") }
   const meta = { role, problems }
   if (job) meta.job = true
-  for (const k of ["file", "session", "dialect", "workdir"]) if (seen[k] !== undefined) meta[k] = seen[k]
+  if (seen.file !== undefined) meta.file = seen.file
   return { lang, meta }
 }
 
