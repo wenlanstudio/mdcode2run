@@ -1,6 +1,18 @@
 # TODO
 
-路线图；与 `README.md`（定位/边界）和 `ARCHITECTURE.md` 原插件版（四层）呼应。打勾即完成。
+路线图；与 `README.md`（定位/边界）和
+[archive/code-exec-2026-10-25/ARCHITECTURE.md](archive/code-exec-2026-10-25/ARCHITECTURE.md)
+（前身插件四层架构）呼应。打勾即完成。
+
+## 已知问题（2026-11-03 仓库巡检，未修）
+
+- [ ] **SessionManager 并发缺陷**（`sessions.js:31`）：同 key 的并发 `acquire` 在首次
+      创建尚未完成时，`entry.session` 还是 `null`，取 `.alive` 直接抛 TypeError。
+- [ ] **空闲回收失效**（`sessions.js:35-44`、`:75`）：`creating` 建成后从不复位，`_reap()`
+      见 `creating` 就跳过 → 超过 `idleMs` 的会话永远不会被回收（常驻 JVM/解释器常驻不散）。
+- [ ] **测试没兜住**（`test/sessions.test.js:10-12`）：`t()` 同步调用、不 `await` 异步用例，
+      上面的失败变成未处理 rejection，套件仍显示全绿；修缺陷时一并把测试壳改成 async。
+
 
 ## 进行中 / 下一步
 
@@ -12,7 +24,7 @@
         （EXEC_ENGINE_PATH → 部署副本 engine/ → node_modules → 生态兄弟目录），缺失静默降级
   - [x] 单引擎实例：桥内按文档路径缓存引擎，跨放映存活；壳 stop 时统一 dispose
   - [ ] Typora 实机验收走查（下条）
-- [x] **code-exec 退役存档**（2026-10-25）：完整快照存于 `docs/legacy-code-exec/`
+- [x] **code-exec 退役存档**（2026-10-25）：完整快照存于 `archive/code-exec-2026-10-25/`
       （含说明：各部分下落）；Typora-2 旧环境保留作二级备份。**不做薄壳化**——
       编辑态执行改为 md2slides 壳的未来功能（壳内 editrender 同族），见其 TODO wishlist
 - [ ] **验收走查**：wordcount 标本在 md2slides 放映里跑通实训篇重放链
@@ -26,12 +38,18 @@
 - [ ] **P4 引擎内功**（按痛感排期，不阻塞宿主）：
   - [ ] 三个常驻 harness（java-session / python-session / shell 的协议部分）收敛成一个
         协议框架——JDK/anaconda 升级砸协议时只改一处；词汇参考 Jupyter message schema
-  - [ ] 词汇表接线：`session=`（跨章具名会话）、`dialect=`（```sql dialect=hive）、`workdir=`
-        （解析已就位，消费未接）
+  - [x] **hive 方言族落地**（2026-10-27）：` ```hive `/`hql`/`hiveql`/`sparksql` 围栏接成走
+        beeline 的 query 族（`languages/hive.js` + `runners/hive.js`，注册进 `index.js`
+        LANGUAGES）→ deck 自动给 ▶；连接由引擎配置 `hive.*` + 前言 `code-exec.hive.*` 覆盖
+        （PASSWORD 仅引擎层）。测试 `test/hive.test.js`（解析+URL 夹具，真实 HS2 由
+        MDX_HIVE_HOST 门控）。**尚未接线**：` ```sql dialect=hive ` 仍走 mysql（见下）。
+  - [ ] 词汇表接线：`session=`（跨章具名会话）、`dialect=` 在 `sql` 围栏上消费
+        （` ```sql dialect=hive ` → 改走 beeline，而非 mysql；当前 hive 只接了 `hive` 直标围栏）、
+        `workdir=`（解析已就位，消费未接）
   - [ ] tunnel 镜像上传：会话建立时把章工作目录上传远端 `~/md-exec/<doc>/<chapter>/`
         （"在 node0 上 hdfs dfs -put"靠它成立；上集群课前需要）
-- [ ] **CI**：push 已触发 offline 套件（`npm run test:quick`；java/python 两套慢测试在
-      无真实环境的 runner 上自动跳过）
+- [ ] **CI**：仓库当前没有 `.github/workflows`（尚未接）；且 `test:quick` 仍依赖本机标本与
+      绝对路径（`fences`、`session-run` 两套），需先 fixture 化再上 CI——否则 runner 上直接红
 - [ ] **发布方式**：`mdcode2run` 名字 npm 未占用（2026-10-25 核过）——GitHub tag 起步，
       需要时再发 npm；生态内消费方：md2slides 壳、marktext 集成
 - [ ] **marktext 宿主**（DESIGN 第 7 步）：muya fence 扩展 + main 进程 runner（IPC 流式）；

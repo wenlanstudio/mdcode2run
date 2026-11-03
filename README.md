@@ -14,7 +14,7 @@ npm install
 node bin/mdcode2run.js list   讲义.md                  # 盘点：哪些块可跑、什么角色
 node bin/mdcode2run.js run    讲义.md --at 128          # 跑第 128 行所在的块（行号 1 基）
 node bin/mdcode2run.js replay 讲义.md --at 360          # 从本章第一个可跑块连跑到这里
-npm test                                                # 9 套测试（真实 JDK / anaconda 自动门控）
+npm test                                                # 10 套测试（真实 JDK / anaconda 自动门控）
 ```
 
 作为库使用，对外入口只有一个：`require("mdcode2run")`。
@@ -56,7 +56,7 @@ engine.dispose()                          // 宿主关文档时回收全部常�
 |---|---|---|---|
 | eval | 常驻解释器，逐块喂代码，同章共享命名空间 | python、jshell/java | `languages/python.js` `languages/java.js` |
 | exec | 本地 bash 或远端 ssh，一次性跑完即断 | bash/sh/shell | `languages/shell.js` |
-| query | SQL → 结构化行列（rows） | mysql | `languages/mysql.js` |
+| query | SQL → 结构化行列（rows） | mysql、hive/beeline（` ```hive ` · ` ```hql ` · ` ```hiveql ` · ` ```sparksql `） | `languages/mysql.js`、`languages/hive.js` |
 | job | 异步长任务：句柄 + 日志流 + 可终止（` ```bash job `） | — | shell 模块路由 |
 | tunnel | 远端集群操作（`[user@host ~]$` 提示符自动路由 ssh） | hdfs / hadoop | shell 模块路由 |
 
@@ -69,7 +69,7 @@ engine.dispose()                          // 宿主关文档时回收全部常�
 | `setup` | 引导块 | 会话建立时自动先跑，要求幂等 |
 | `file=<相对路径>` | 文件块 | 物化进章工作目录（跨语言文件总线），不可执行 |
 | `session=<名>` | 会话归属 | 显式命名会话（词汇已解析，路由待接） |
-| `dialect=<名>` / `workdir=<路径>` | 方言 / 工作目录 | 已解析，逐模块消费 |
+| `dialect=<名>` / `workdir=<路径>` | 方言 / 工作目录 | 均已解析；`dialect` 只在 `sql` 围栏上待接线（hive 直标围栏已可用），`workdir` 尚未被消费 |
 | `job` | 作业模式 | 异步启动 + 日志流 + 树杀终止；与 demo/setup/file 互斥 |
 
 ## 配置三层
@@ -100,9 +100,13 @@ front-matter.js        前言配置读取（code-exec.<段>.<键> → 顶层旧�
 sessions.js            会话注册表（懒建立 / 并发共享创建 / 死会话重建 / 空闲回收）
 chapter.js             章计划：setup/file/blocks 清单、内容指纹、file= 物化
 session-run.js         会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
-languages/             四个语言模块：认语言、查环境、给选项、路由 runner（原 plugins/ 去插件壳）
-runners/               七个执行器：python(.session) / java(.session) / shell / query / job（纯 Node）
-test/                  9 套测试；真实 JDK / anaconda / mysql 按 MDX_* 环境变量与默认路径门控
+languages/             五个语言模块：认语言、查环境、给选项、路由 runner（原 plugins/ 去插件壳）
+runners/               八个执行器：python(.session) / java(.session) / shell / query / hive(beeline) / job（纯 Node）
+test/                  10 套测试；真实 JDK / anaconda / mysql / Hive 按 MDX_* 与默认路径门控
+                       （fences、session-run 两套仍依赖本机标本，待 fixture 化）
+lab/                   实验原型：mrjob 一文档一作业（独立于主引擎，npm run test:mrjob）
+archive/               前身 code-exec 插件快照（只读，2026-10-25）
+TODO.md                路线图与已知问题
 ```
 
 ## 架构铁律
@@ -118,7 +122,8 @@ test/                  9 套测试；真实 JDK / anaconda / mysql 按 MDX_* 环
 ## 与 Typora 插件版的差异
 
 - 删除：结果卡片 / 放映浮层 / ▶ 按钮 / marp 接线 / fence_enhance 适配 / BasePlugin 基座
-  （这些归宿主；原版见 Typora `resources/plugin/code-exec/`，两版并存，插件版未动）。
+  （这些归宿主；原版见 Typora `resources/plugin/code-exec/`，本仓只读快照在
+  [archive/code-exec-2026-10-25](archive/code-exec-2026-10-25/)，两版并存，插件版未动）。
 - 删除：PYTHON_PATH 的 [matplotlib] 插件回退（Typora 生态问答）；需要等效行为就在
   config.python.PYTHON_PATH 写同一路径。
 - 变化：事件从 DOM CustomEvent 改为 EventEmitter；会话注册表从模块级单例改为随引擎实例。
@@ -130,4 +135,8 @@ test/                  9 套测试；真实 JDK / anaconda / mysql 按 MDX_* 环
   file= 物化产物仍在）。跨块状态链路请用 `--replay`（一个进程内 setup → … → 目标块）。
 - jshell 首次建会话（大 classpath）有秒级预热；`--timeout` 管的是单请求上限（超时会话
   作废、下次重建）。
-- mysql 密码只放引擎层配置；前言层无权携带（讲义分享/进 git 的前提）。
+- mysql / hive 密码只放引擎层配置；前言层无权携带（讲义分享/进 git 的前提）。
+- Hive 走 beeline：`hive.CLIENT` 需指向可直接执行的 wrapper。beeline 由 Hive 发行版提供
+  （Hadoop 发行版不含）；Windows 上 `beeline.cmd` 不能直接 spawn，需包一层可执行入口。
+- ` ```sql dialect=hive ` 尚未接线（仍走 mysql）；当前可用的是直标围栏
+  ` ```hive `/`hql`/`hiveql`/`sparksql `。
