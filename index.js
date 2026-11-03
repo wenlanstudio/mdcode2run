@@ -22,6 +22,8 @@ const { parseFences, parseChapters, locateFence } = require("./fences")
 const { frontMatterOf } = require("./front-matter")
 const { createRunEvents } = require("./events")
 const { BUILTIN_TECHS, BUILTIN_COURSES, resolveFamily, presetNameOf } = require("./preset")
+const { createJournal } = require("./journal")
+const { fnv1a } = require("./chapter")
 
 const LANGUAGES = {
   python: require("./languages/python"),
@@ -55,6 +57,7 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
   const courseTable = { ...BUILTIN_COURSES, ...courses }
   const secrets = (config && typeof config.secrets === "object" && config.secrets) || {}
   const events = createRunEvents()
+  const journal = createJournal()   // 执行日志（DESIGN §7）：章作用域的 ▶ 序列
   const baseMods = new Map()   // family → 语言模块（langs 探测 + 无 preset 时的执行实现）
   const docMods = new Map()    // `${documentPath}#${family}` → preset 解析后的执行模块
 
@@ -214,16 +217,36 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
       // 作业模式：启动即返回——本次"运行"在事件契约里已经 done（作业退出是另一个生命周期，
       // 消费者 await result.job.done）
       events.emit("done", { ...detail, ok: result.kind === "job" ? true : !!result.ok, duration: (Date.now() - started) / 1000, error: result.error || undefined })
+      recordRun(ctx, result, started)
       return result
     } catch (error) {
       const msg = error?.message ?? String(error)
       events.emit("done", { ...detail, ok: false, duration: (Date.now() - started) / 1000, error: msg })
-      return contractFail(msg)
+      const failed = contractFail(msg)
+      recordRun(ctx, failed, started)
+      return failed
     }
+  }
+
+  /**
+   * 执行日志记账（DESIGN §7）：每次真执行（checkRuntime 通过后的 ▶，含失败与作业
+   * 启动）记一条，章作用域。早期失败（checkRuntime / preset 解析）没跑任何东西，
+   * 不记账。序号回填进 result.session.seq 供宿主显示「▶ ran #N」。
+   */
+  const recordRun = (ctx, result, started) => {
+    if (!ctx.session) return
+    const seq = journal.record(ctx.session.workdirKey, {
+      family: ctx.family, line: ctx.line, hash: fnv1a(ctx.source),
+      ok: result.kind === "job" ? true : !!result.ok, ts: started,
+    })
+    if (result.session) result.session.seq = seq
   }
 
   /** ⏩ 重放到某块：从本章第一个可跑块按文档序连跑到 ctx（作业块跳过并注明）。 */
   const replay = (ctx, opts = {}) => run(ctx, { ...opts, replay: true })
+
+  /** 📜 某章的执行日志快照（DESIGN §7）：宿主渲染 ▶ 轨迹用。chapterLine 为 0 基章行号。 */
+  const journalOf = chapterLine => journal.of(`${documentPath}#${chapterLine}`)
 
   /** ⟳ 销毁会话。参数：locate() 的 ctx，或 {family, key}，或裸 key（广播到全部语言族）。 */
   const resetSession = target => {
@@ -239,7 +262,7 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
   /** 退出前回收：销毁全部常驻会话（宿主关文档时调用）。 */
   const dispose = () => { for (const m of [...baseMods.values(), ...docMods.values()]) m.dispose?.() }
 
-  return { events, parse, locate, run, replay, resetSession, dispose, config }
+  return { events, parse, locate, run, replay, resetSession, dispose, config, journalOf }
 }
 
 module.exports = { createEngine, contractFail }

@@ -281,10 +281,10 @@ tech 是 4 个 schema，course 是 6 个薄装订，engine 一份秘密。集群
 | preset（tech/course/doc/engine） | 六层配置 | **tech/course/doc/engine 四层已实现（2026-11-04，`preset.js`）**；chapter/block override 留位（复用同一 apply 语义） |
 | chapter 层配置 | 有（h1 子树覆盖） | 无 |
 | `override:` fence escape | 有 | 无 |
-| 执行日志 + 序号 | 有 | 无 |
-| stale 传播 | 有（文件依赖 + 会话内顺序） | 无 |
-| trace sidecar | 有 | 无 |
+| 执行日志 + 序号 | 有 | **已实现（2026-11-04，`journal.js`）**：章作用域 ▶ 序列，`result.session.seq` + `engine.journalOf(chapterLine)` |
+| stale 传播 | 有（文件依赖 + 会话内顺序） | **已实现 v1（2026-11-04）**：顺序边（内容指纹）+ 文件边（章工作目录快照，源码提到即消费，保守多报） |
+| trace sidecar | 有 | 无（日志已就位，落盘格式待定） |
 | marker `call=`/`name=` | 不做（已论证） | 无（一致） |
 | sessions.js 并发/回收缺陷 | 须修 | **已修（2026-11-03）** |
 
-重构顺序建议：~~先修 sessions.js 缺陷~~（✅ 2026-11-03）→ ~~删 session/dialect/workdir~~（✅ 2026-11-03）→ ~~加 preset 六层~~（✅ 2026-11-04，tech/course/doc/engine 四层 + 三护栏，chapter/block 留位）→ 执行日志/stale → trace。
+重构顺序建议：~~先修 sessions.js 缺陷~~（✅ 2026-11-03）→ ~~删 session/dialect/workdir~~（✅ 2026-11-03）→ ~~加 preset 六层~~（✅ 2026-11-04，tech/course/doc/engine 四层 + 三护栏，chapter/block 留位）→ ~~执行日志/stale~~（✅ 2026-11-04，journal.js + 文件依赖边 v1）→ trace sidecar。

@@ -122,7 +122,8 @@ code-exec:
 ## 目录结构
 
 ```
-index.js               引擎门面（parse / locate / run / replay / resetSession / events）
+index.js               引擎门面（parse / locate / run / replay / resetSession / journalOf / events）
+journal.js             执行日志（章作用域 ▶ 序列；result.session.seq + journalOf 供宿主渲染）
 preset.js              preset 六层解析核心（tech/course 装订 + 三护栏，纯函数）
 bin/mdcode2run.js      CLI（list / run / replay，--json 走契约）
 fences.js              块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）
