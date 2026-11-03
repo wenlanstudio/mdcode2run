@@ -69,7 +69,14 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
   }
 }
 ;(async () => {
-  const SPECIMEN = process.argv[2] || "D:/studybigdata/markdown/hadoop/4-1-1-Hadoop_MapReduce.specimen.md"
+  const SPECIMEN = process.argv[2]
+    || path.join(__dirname, "fixtures", "4-1-1-Hadoop_MapReduce.specimen.md")
+  const specimenReady = fs.existsSync(SPECIMEN)
+  const specimenTest = (name, fn) => {
+    if (specimenReady) t(name, fn)
+    else console.log(`  - 跳过：${name}（标本不存在：${SPECIMEN}）`)
+  }
+  if (!specimenReady) console.log("  - 未找到标本，跳过标本走查段（可用第一个参数指定）")
 
   // ---------- chapter.js ----------
   t("fnv1a：稳定且区分内容", () => {
@@ -95,7 +102,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
   const chapterTitle = "实训篇：实现词频统计"
   const workdir = chapterWorkdir("test-doc#10")
 
-  t("物化：file= 块按相对路径落进章工作目录（数据/pom/源码树），结尾带换行", async () => {
+  specimenTest("物化：file= 块按相对路径落进章工作目录（数据/pom/源码树），结尾带换行", async () => {
     const ctx = specimenCtx(SPECIMEN, chapterTitle, "code")
     const manager = { _m: new Map(), acquire: async (k, f) => { if (!manager._m.has(k)) manager._m.set(k, await f()); return manager._m.get(k) } }
     const created = []
@@ -107,7 +114,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.ok(fs.existsSync(path.join(workdir, path.join("src/main/java/com/studybigdata/hadoop/mapred/awordcount", "WordCountMain.java").replaceAll("/", path.sep))))
   })
 
-  t("引导块自动先跑；setup 签名不变不重跑", async () => {
+  specimenTest("引导块自动先跑；setup 签名不变不重跑", async () => {
     const ctx = specimenCtx(SPECIMEN, chapterTitle, "code")
     let session = null
     const manager = { acquire: async (k, f) => session ??= await f() }
@@ -121,7 +128,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.equal(r1.session.stale, 0)
   })
 
-  t("过期链：上游块内容改动后，结果标 stale", async () => {
+  specimenTest("过期链：上游块内容改动后，结果标 stale", async () => {
     const ctx = specimenCtx(SPECIMEN, chapterTitle, "code")
     let session = null
     const manager = { acquire: async (k, f) => session ??= await f() }
@@ -134,7 +141,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.ok(r.session.stale >= 1, `应检出过期块: ${JSON.stringify(r.session)}`)
   })
 
-  t("重放：从第一个可跑块连跑到当前块，setup 必跑，只有最后一块进 onChunk", async () => {
+  specimenTest("重放：从第一个可跑块连跑到当前块，setup 必跑，只有最后一块进 onChunk", async () => {
     const ctx = specimenCtx(SPECIMEN, chapterTitle, "code", { last: true })   // 重放到最后一个 java 块（步骤三）
     let session = null
     const manager = { acquire: async (k, f) => session ??= await f() }
@@ -152,7 +159,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.ok(delta[0].includes("MockContext"), "重放时 setup 必跑")
   })
 
-  t("重放中途失败：报第几块；setup 失败：报引导块并中止", async () => {
+  specimenTest("重放中途失败：报第几块；setup 失败：报引导块并中止", async () => {
     const ctx = specimenCtx(SPECIMEN, chapterTitle, "code")
     let session = null
     const manager = { acquire: async (k, f) => session ??= await f() }
@@ -169,12 +176,12 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.ok(r2.error.includes("引导块（setup）执行失败"), r2.error)
   })
 
-  t("章工作目录：同名 key 稳定复用", () => {
+  specimenTest("章工作目录：同名 key 稳定复用", () => {
     assert.equal(chapterWorkdir("k1"), chapterWorkdir("k1"))
     assert.notEqual(chapterWorkdir("k1"), chapterWorkdir("k2"))
   })
 
-  t("章计划按语言族过滤：java 会话不吞同章的 shell/xml 块（会话身份 = 章×语言）", () => {
+  specimenTest("章计划按语言族过滤：java 会话不吞同章的 shell/xml 块（会话身份 = 章×语言）", () => {
     const md = ["```java", "J1", "```", "```shell", "S1", "```", "```xml", "X1", "```", "```java", "J2", "```"].join("\n")
     const fences = parseFences(md)
     const plan = buildChapterPlan(fences, { langs: ["java"] })
@@ -183,7 +190,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.equal(all.blocks.length, 4, "不给 langs 保持全量（files 永远全量）")
   })
 
-  t("重放不越语言：ctx.langs=java 时同章 shell/xml 块不进重放序列", async () => {
+  specimenTest("重放不越语言：ctx.langs=java 时同章 shell/xml 块不进重放序列", async () => {
     const md = ["```java", "J1", "```", "```shell", "S1", "```", "```xml", "X1", "```", "```java", "J2", "```"].join("\n")
     const fences = parseFences(md)
     const ctx = { key: "k", workdirKey: "wk", chapter: "c", fences, position: 3, langs: ["java"] }
@@ -194,7 +201,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.equal(r.session.total, 2)
   })
 
-  t("重放跳过作业块：job 块不被代启，结果里注明；正常 ▶ 不受影响", async () => {
+  specimenTest("重放跳过作业块：job 块不被代启，结果里注明；正常 ▶ 不受影响", async () => {
     const md = ["```java", "A", "```", "```java job", "JOB", "```", "```java", "C", "```"].join("\n")
     const fences = parseFences(md)
     const ctx = { key: "k", workdirKey: "wk", chapter: "c", fences, position: 2, langs: ["java"] }

@@ -5,6 +5,8 @@
  * MDX_MYSQL_HOST / MDX_MYSQL_USER / MDX_MYSQL_PASSWORD 门控（可选 MDX_MYSQL_PORT / _DB）。
  */
 const assert = require("assert")
+const { spawnSync } = require("child_process")
+const net = require("net")
 const { parseMysqlBatch, unescapeBatch, parseSqliteJson, runQuery } = require("../runners/query")
 
 let passed = 0
@@ -69,24 +71,45 @@ t("空数组 / 空输出 → 无结果集", () => {
 
 // ---------- 执行层（真实 CLI）----------
 ;(async () => {
-  await (async () => {
-    const name = "执行层：mysql 连不上 → 真实失败路径（本机 3306 无服务）"
+  // 执行层依赖本机 mysql CLI；没有 CLI、或 3306 已被占用时，这段没有可验证的语义，
+  // 跳过而不是判红（CI / 新机器默认走这里）。
+  const mysqlCli = (() => {
     try {
-      const r = await runQuery({ client: "mysql", sql: "SELECT 1;" }, {
-        host: "127.0.0.1", port: 3306, user: "root", password: "", timeout: 8000,
-      })
-      if (r.ok) throw new Error("不应成功：本机没有 MySQL 服务")
-      assert.ok(r.error.length > 0, "错误信息不应为空")
-      passed += 1
-      console.log(`  ✓ ${name}`)
-    } catch (e) {
-      failures.push(`${name}\n    ${e.message}`)
-      console.log(`  ✗ ${name}\n    ${e.message}`)
+      return spawnSync("mysql", ["--version"], { stdio: "ignore", windowsHide: true }).status === 0
+    } catch {
+      return false
     }
   })()
+  const portBusy = await new Promise(resolve => {
+    const sock = net.connect({ host: "127.0.0.1", port: 3306 })
+    const done = busy => { sock.destroy(); resolve(busy) }
+    sock.once("connect", () => done(true))
+    sock.once("error", () => done(false))
+    sock.setTimeout(1500, () => done(false))
+  })
+  if (!mysqlCli || portBusy) {
+    console.log(`  - 跳过：执行层失败路径（mysql CLI=${mysqlCli ? "有" : "无"}，3306=${portBusy ? "有服务" : "空闲"}）`)
+  } else {
+    await (async () => {
+      const name = "执行层：mysql 连不上 → 真实失败路径（本机 3306 无服务）"
+      try {
+        const r = await runQuery({ client: "mysql", sql: "SELECT 1;" }, {
+          host: "127.0.0.1", port: 3306, user: "root", password: "", timeout: 8000,
+        })
+        if (r.ok) throw new Error("不应成功：本机没有 MySQL 服务")
+        assert.ok(r.error.length > 0, "错误信息不应为空")
+        passed += 1
+        console.log(`  ✓ ${name}`)
+      } catch (e) {
+        failures.push(`${name}\n    ${e.message}`)
+        console.log(`  ✗ ${name}\n    ${e.message}`)
+      }
+    })()
+  }
 
   const host = process.env.MDX_MYSQL_HOST
-  if (host) {
+  if (host && !mysqlCli) console.log("  - 跳过：真实连接（未找到 mysql CLI）")
+  if (host && mysqlCli) {
     const name = `执行层：真实连接 ${host} SELECT 标量与建表（环境变量门控）`
     await (async () => {
       try {
