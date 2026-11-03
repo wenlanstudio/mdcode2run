@@ -21,7 +21,7 @@ node bin/mdcode2run.js run    讲义.md --at 128          # 跑第 128 行所在
 node bin/mdcode2run.js replay 讲义.md --at 360          # 从本章第一个可跑块连跑到这里
 node bin/mdcode2run.js run    讲义.md --at 360 --trace  # 执行即录制到 讲义.md.trace（sidecar）
 node bin/mdcode2run.js replay 讲义.md --trace          # 按录制序重演整篇（含重跑；改动块标 stale 跳过）
-npm test                                                # 10 套测试（真实 JDK / anaconda 自动门控）
+npm test                                                # 全套测试（真实 JDK / anaconda 自动门控）
 ```
 
 作为库使用，对外入口只有一个：`require("mdcode2run")`。
@@ -124,7 +124,7 @@ code-exec:
 ## 目录结构
 
 ```
-index.js               引擎门面（parse / locate / run / replay / resetSession / journalOf / events）
+index.js               引擎门面（parse / locate / run / replay / resetSession / journalOf / traceOf / traceLoad / replayTrace / events）
 journal.js             执行日志（章作用域 ▶ 序列；result.session.seq + journalOf 供宿主渲染）
 trace.js               trace sidecar 纯函数层（JSONL 序列化/校验/重演计划；文件 I/O 在门面）
 preset.js              preset 六层解析核心（tech/course 装订 + 三护栏，纯函数）
@@ -136,7 +136,7 @@ chapter.js             章计划：setup/file/blocks 清单、内容指纹、fil
 session-run.js         会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
 languages/             五个语言模块：认语言、查环境、给选项、路由 runner
 runners/               八个执行器：python(.session) / java(.session) / shell / query / hive(beeline) / job（纯 Node）
-test/                  10 套测试；测试标本在 test/fixtures/；真实 JDK / anaconda / mysql / Hive
+test/                   测试套件（run-all.js 自动纳管）；测试标本在 test/fixtures/；真实 JDK / anaconda / mysql / Hive
                        按 MDX_* 门控，缺环境时对应段自动跳过
 sample/                可运行讲义样本（给老师参照）：python / java 基础各一份，
                        真跑验证过，复制改内容即成第一份讲义；见 sample/README.md

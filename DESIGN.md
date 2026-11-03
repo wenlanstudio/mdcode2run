@@ -275,7 +275,7 @@ tech 是 4 个 schema，course 是 6 个薄装订，engine 一份秘密。集群
 | `:var` 值注入（org-babel） | 跨语言靠文件总线、同语言靠 session 共享，:var 冗余 |
 | `:cache`（org-babel） | 比所需重；展示型 stale 不用 hash 比对 |
 | `call=`/`name=` marker | 空围栏在正文里丑；重跑靠执行日志（§7） |
-| `session=`/`dialect=`/`workdir=` | 现状已解析但从未接线；六门课零需求（§11） |
+| `session=`/`dialect=`/`workdir=` | 已删除（2026-11-03，§13）——六门课零需求（§11） |
 | 显式执行队列声明 | 用下标脆弱；用名字又冗余；日志录制即队列（§7） |
 | auto-run 依赖 | 与讲台手动 ▶ 控制冲突 |
 | unique 变量约束 | 无 DAG 就不需要；老师该能跨块重用变量名 |
@@ -295,8 +295,8 @@ tech 是 4 个 schema，course 是 6 个薄装订，engine 一份秘密。集群
 | `override:` fence escape | 有 | 无 |
 | 执行日志 + 序号 | 有 | **已实现（2026-11-04，`journal.js`）**：章作用域 ▶ 序列，`result.session.seq` + `engine.journalOf(chapterLine)` |
 | stale 传播 | 有（文件依赖 + 会话内顺序） | **已实现 v1（2026-11-04）**：顺序边（内容指纹）+ 文件边（章工作目录快照，源码提到即消费，保守多报） |
-| trace sidecar | 有 | 无（日志已就位，落盘格式待定） |
+| trace sidecar | 有 | **已实现（2026-11-04，`trace.js` + 门面 tracePath/traceOf/traceLoad/replayTrace）**；引擎级接线（自动加载/追加/重演循环）暂由真机冒烟覆盖，CI 自动化待补 |
 | marker `call=`/`name=` | 不做（已论证） | 无（一致） |
 | sessions.js 并发/回收缺陷 | 须修 | **已修（2026-11-03）** |
 
-重构顺序建议：~~先修 sessions.js 缺陷~~（✅ 2026-11-03）→ ~~删 session/dialect/workdir~~（✅ 2026-11-03）→ ~~加 preset 六层~~（✅ 2026-11-04，tech/course/doc/engine 四层 + 三护栏，chapter/block 留位）→ ~~执行日志/stale~~（✅ 2026-11-04，journal.js + 文件依赖边 v1）→ trace sidecar。
+重构顺序建议：~~先修 sessions.js 缺陷~~（✅ 2026-11-03）→ ~~删 session/dialect/workdir~~（✅ 2026-11-03）→ ~~加 preset 六层~~（✅ 2026-11-04，tech/course/doc/engine 四层 + 三护栏，chapter/block 留位）→ ~~执行日志/stale~~（✅ 2026-11-04，journal.js + 文件依赖边 v1）→ ~~trace sidecar~~（✅ 2026-11-04，trace.js + replayTrace）。目标态全部落地；剩余：chapter/block override、trace 引擎级 CI 覆盖。

@@ -34,12 +34,13 @@ DESIGN.md 是设计权威——本文件记录"做到哪了"与"下一步"，不
         SQL 方言用直标围栏 ` ```hive ` 等；跨章具名会话与自定义工作目录属 v2 储备。
   - [ ] tunnel 镜像上传：会话建立时把章工作目录上传远端 `~/md-exec/<doc>/<chapter>/`
         （"在 node0 上 hdfs dfs -put"靠它成立；上集群课前需要）
-- [ ] **CI**：仓库当前没有 `.github/workflows`（尚未接）；且 `test:quick` 仍依赖本机标本与
-      绝对路径（`fences`、`session-run` 两套），需先 fixture 化再上 CI——否则 runner 上直接红
+- [x] **CI**：`.github/workflows/ci.yml` 已接（node20 × ubuntu/windows，2026-11-03 起
+      全绿；`fences`/`session-run` 等纯逻辑套件 CI 直跑，真实 JDK/anaconda 段自动门控跳过）
 - [ ] **发布方式**：`mdcode2run` 名字 npm 未占用（2026-10-25 核过）——GitHub tag 起步，
-      需要时再发 npm；生态内消费方：md2slides 壳、marktext 集成
-- [ ] **marktext 宿主**（DESIGN 第 7 步）：muya fence 扩展 + main 进程 runner（IPC 流式）；
-      引擎经 `file:` 依赖进 fork，集成代码收敛在独立子目录给上游合并留活路
+      需要时再发 npm；生态内消费方：wenlan-studio（编辑态，方向已定）
+- [ ] **宿主集成**（DESIGN 第 7 步，方向已定 wenlan-studio 编辑态先行，2026-11-03）：
+      main 进程 execService（单例引擎 + IPC 流式）→ muya fence ▶ 角标 + cell 状态面板
+      （▶/序号/stale 角标）→ 放映态桥另议。md2slides 零改动；引擎经 `file:` 依赖进消费方
 
 ## 已完成
 

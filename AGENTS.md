@@ -69,7 +69,7 @@ mdcode2run 是 Markdown 代码执行引擎：**块角色标注 + 章会话 + fil
   languages/             五个语言模块：认语言、查环境、给选项、路由 runner
   runners/               八个执行器（纯 Node）：python(.session) / java(.session) /
                          shell / query / hive(beeline) / job
-  test/                  十套测试 + run-all.js 跑批器 + fixtures/ 测试标本
+  test/                  测试套件（run-all.js 自动纳管新文件）+ fixtures/ 测试标本
   sample/                可运行讲义样本（老师参照用）：python/java 基础，
                          真跑验证过；specimen 命名沿用
   lab/mrjob/             实验原型：一文档一 MapReduce 作业（独立于主引擎，
