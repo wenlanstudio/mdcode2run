@@ -181,10 +181,12 @@ process.exit 之前落定**——`t()` 同步调用 async fn、末尾直接 `pro
   作废、下次重建。写 java 相关测试/基准时把这个预热算进去。
 - **beeline 在 Windows 不能直接 spawn**：`hive.CLIENT` 需指向可执行的 wrapper
   （beeline 由 Hive 发行版提供，Hadoop 发行版不含）。
-- **`sessions.js` 已知缺陷**（TODO.md「已知问题」追踪，2026-11-03 巡检实测复现）：
-  并发 acquire 时 `entry.session` 为 null 抛 TypeError；`entry.creating` 从不复位导致
-  空闲回收失效。动 sessions.js 前先看 TODO，修缺陷时一并把 `test/sessions.test.js`
-  的壳改成 async（见测试壳铁律）。
+- **`sessions.js` 曾有并发/回收缺陷**（2026-11-03 已修，留作护栏）：并发 acquire 时
+  `entry.session` 为 null 抛 TypeError；`entry.creating` 从不复位导致空闲回收失效。
+  修复要点：判 `entry.session` 存在性而非直接取 `.alive`；factory resolve 后
+  `entry.creating = null` 复位。同期 `test/sessions.test.js` 的同步测试壳被改成
+  pending + `await Promise.all(pending)`——原壳让 async 用例全空壳、CI 假绿掩盖
+  上述两条 bug。动 sessions 逻辑前先看 `test/session-run.test.js` 的壳写法。
 - **fences.js 是纯函数**：解析逻辑（词汇表 / 分章 / 前言）全部保持可单测、无 IO；
   发现解析与执行耦合时先解耦再改。
 - **新增 runner**：跑在子进程里的东西注意 stdio 编码（Windows 下 GBK 坑）与僵尸

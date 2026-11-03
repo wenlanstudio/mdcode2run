@@ -3,14 +3,10 @@
 路线图；与 `README.md`（定位/边界）、`DESIGN.md`（设计规范）呼应。打勾即完成。
 DESIGN.md 是设计权威——本文件记录"做到哪了"与"下一步"，不重复设计叙事。
 
-## 已知问题（2026-11-03 仓库巡检，未修）
+## 已知问题
 
-- [ ] **SessionManager 并发缺陷**（`sessions.js:31`）：同 key 的并发 `acquire` 在首次
-      创建尚未完成时，`entry.session` 还是 `null`，取 `.alive` 直接抛 TypeError。
-- [ ] **空闲回收失效**（`sessions.js:35-44`、`:75`）：`creating` 建成后从不复位，`_reap()`
-      见 `creating` 就跳过 → 超过 `idleMs` 的会话永远不会被回收（常驻 JVM/解释器常驻不散）。
-- [ ] **测试没兜住**（`test/sessions.test.js:10-12`）：`t()` 同步调用、不 `await` 异步用例，
-      上面的失败变成未处理 rejection，套件仍显示全绿；修缺陷时一并把测试壳改成 async。
+（无未修缺陷。SessionManager 并发/回收/测试壳三条已于 2026-11-03 修复并补回归用例，
+详见下方「已完成」段。）
 
 
 ## 进行中 / 下一步
@@ -50,3 +46,12 @@ DESIGN.md 是设计权威——本文件记录"做到哪了"与"下一步"，不
 - [x] 2026-10-25 修复 CLI 跑完不退出：常驻 JVM 的 stdio 管道撑住事件循环，
       一次性进程必须显式 `engine.dispose()`（已写进 README 消费方注意）
 - [x] 2026-10-25 迁入 `D:/md-ecosystem`（与 md2slides、marktext 同一工作区根）
+- [x] 2026-11-03 **修 SessionManager 三条缺陷**：
+  - 并发 acquire 抛 TypeError（`entry.session` 为 null 时取 `.alive`）→ 改判
+    `entry.session` 存在性，建立期共享同一次 creating。
+  - 空闲回收失效（`entry.creating` 从不复位 → `_reap()` 永远 continue）→
+    factory resolve 后复位 `entry.creating = null`。
+  - `test/sessions.test.js` 测试壳同步调 async 用例 + 末尾 `process.exit()`，
+    6 项全空壳（"通过 6 项"假绿，前两条 bug 因此被 CI 漏过）→ 改 pending +
+    `await Promise.all(pending)` 壳（照 `session-run.test.js` 写法），并补一条
+    确定性命中并发 race 的用例。修复后 sessions 7/7 真跑通过，全套 8/8 套无回归。

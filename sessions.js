@@ -28,13 +28,19 @@ class SessionManager {
    */
   acquire(key, factory) {
     let entry = this._entries.get(key)
-    if (!entry || !entry.session.alive) {
-      if (entry) this._drop(key, "dead")       // 死会话的残留（目录等）先清掉
+    // entry 可能存在但 session=null：factory 还在建立中（并发 acquire 第二次进来）。
+    // 此时共享同一次 creating，不重判 alive（session 还没造出来，谈不上活不活）。
+    if (entry && entry.session && !entry.session.alive) {
+      this._drop(key, "dead")                       // 死会话的残留（目录等）先清掉
+      entry = undefined
+    }
+    if (!entry) {
       entry = { session: null, creating: null, lastUsed: 0 }
       this._entries.set(key, entry)
       entry.creating = (async () => {
         const session = await factory()
         entry.session = session
+        entry.creating = null                       // 建完复位，否则 _reap 永远 continue（旧 bug）
         entry.lastUsed = Date.now()
         return session
       })()

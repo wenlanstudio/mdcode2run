@@ -7,8 +7,24 @@ const { SessionManager } = require("../sessions")
 
 let passed = 0
 const failures = []
+const pending = []
+/**
+ * 同步用例当场计数；async 用例的 promise 进 pending——**汇总前必须 await 全部**，
+ * 否则断言跑在 process.exit 之后，测试"绿"得毫无意义（本文件曾犯过此错，
+ * 导致并发 acquire 的 TypeError 与空闲回收失效双双被假绿掩盖）。
+ */
 const t = (name, fn) => {
-  try { fn(); passed += 1 } catch (e) { failures.push(`${name}\n    ${e.message}`) }
+  try {
+    const r = fn()
+    if (r && typeof r.then === "function") {
+      pending.push(r.then(
+        () => { passed += 1 },
+        e => failures.push(`${name}\n    ${e.message}`),
+      ))
+      return
+    }
+    passed += 1
+  } catch (e) { failures.push(`${name}\n    ${e.message}`) }
 }
 
 const fakeSession = () => ({ alive: true, destroyed: "", destroy(reason = "") { this.destroyed = reason } })
@@ -34,6 +50,26 @@ const tick = () => new Promise(resolve => setTimeout(resolve, 0))
     const [a, b] = await Promise.all([m.acquire("k", factory), m.acquire("k", factory)])
     assert.strictEqual(a, b)
     assert.equal(created, 1)
+    m.destroyAll()
+  })
+
+  t("并发 acquire：factory 建立期间第二次 acquire 不抛 TypeError（旧 bug 1）", async () => {
+    const m = new SessionManager({ reapMs: 3600_000 })
+    let created = 0
+    let resolveFirst
+    const factory = () => new Promise(resolve => {
+      created += 1
+      resolveFirst = () => resolve(fakeSession())
+    })
+    // 第一次 acquire：factory 还没 resolve，entry.session 仍是 null
+    const p1 = m.acquire("k", factory)
+    // 立即第二次 acquire：此刻 entry.creating 进行中、entry.session=null
+    // 旧代码 !entry.session.alive 直接 TypeError；修复后应共享同一次 creating
+    const p2 = m.acquire("k", factory)
+    resolveFirst()                                   // 放行 factory
+    const [a, b] = await Promise.all([p1, p2])
+    assert.strictEqual(a, b)
+    assert.equal(created, 1, "并发期间二次 acquire 不应触发新 factory")
     m.destroyAll()
   })
 
@@ -80,7 +116,8 @@ const tick = () => new Promise(resolve => setTimeout(resolve, 0))
     m.destroyAll()
   })
 
+  await Promise.all(pending)   // 异步用例的断言全部落定后才许汇总（见 t 的注释）
   console.log(`通过 ${passed} 项${failures.length ? `，失败 ${failures.length} 项` : ""}`)
   for (const f of failures) console.log(`  ✗ ${f}`)
   process.exit(failures.length ? 1 : 0)
-})()
+})().catch(e => { console.error("脚本自身失败:", e); process.exit(1) })

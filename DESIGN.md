@@ -284,6 +284,6 @@ tech 是 4 个 schema，course 是 6 个薄装订，engine 一份秘密。集群
 | stale 传播 | 有（文件依赖 + 会话内顺序） | 无 |
 | trace sidecar | 有 | 无 |
 | marker `call=`/`name=` | 不做（已论证） | 无（一致） |
-| sessions.js 并发/回收缺陷 | 须修 | 未修（TODO 已记） |
+| sessions.js 并发/回收缺陷 | 须修 | **已修（2026-11-03）** |
 
-重构顺序建议：先修 sessions.js 缺陷 → 删 session/dialect/workdir → 加 preset 六层 → 执行日志/stale → trace。
+重构顺序建议：~~先修 sessions.js 缺陷~~（✅ 2026-11-03）→ 删 session/dialect/workdir → 加 preset 六层 → 执行日志/stale → trace。
