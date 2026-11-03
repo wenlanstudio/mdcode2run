@@ -205,7 +205,7 @@ const specimenCtx = (specimen, chapterTitle, which, { last = false } = {}) => {
     assert.ok((r.text ?? "").includes("跳过 1 个作业块"), r.text)
     assert.equal(r.session.total, 3)
     assert.equal(r.session.ran, 2)
-    // 普通 ▶ 跑作业块：sessionRun 不管执行模式，照常 eval（启动交给 shell 插件的 job 路由）
+    // 普通 ▶ 跑作业块：sessionRun 不管执行模式，照常 eval（启动交给 shell 模块的 job 路由）
     const r2 = await sessionRun({ manager, ctx: { ...ctx, position: 1 }, create: () => fakeSession(), source: "JOB", opts: {} })
     assert.equal(session.evals.length, 3)
     assert.equal(r2.session.ran, 3)

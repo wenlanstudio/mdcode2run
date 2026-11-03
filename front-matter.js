@@ -5,7 +5,6 @@
  * 查找顺序：`code-exec.<section>.<key>`（新，文档级默认）→ 顶层 `<key>`（旧写法，仍认）。
  * 键名大小写不敏感。密码不在此列——秘密只放引擎配置（宿主偏好），前言层无权读取。
  *
- * 与 Typora 插件版的差异：原版经框架 utils.splitFrontMatter 取整篇 YAML 对象；
  * 这里只依赖 fences.js 的 parseCodeExecFrontMatter（code-exec: 段的缩进映射子集），
  * 外加一个顶层标量扫描——shell 连接信息与 java 旧写法（顶层 JAVA_HOME）在这一层。
  */

@@ -1,8 +1,6 @@
 # TODO
 
-路线图；与 `README.md`（定位/边界）和
-[archive/code-exec-2026-10-25/ARCHITECTURE.md](archive/code-exec-2026-10-25/ARCHITECTURE.md)
-（前身插件四层架构）呼应。打勾即完成。
+路线图；与 `README.md`（定位/边界）呼应。打勾即完成。
 
 ## 已知问题（2026-11-03 仓库巡检，未修）
 
@@ -16,24 +14,13 @@
 
 ## 进行中 / 下一步
 
-- [x] **P1b 放映执行桥接**（2026-10-25 代码完成，md2slides 侧 `host/typora/exec-bridge.js`）：
-      deck 就绪后装饰 ▶/⏩（`data-md2s-activatable`；分页切片自动还原成源码整块再定位），
-      点击调 `engine.run/replay`，结果浮层（流式 + 表/图 + 会话 HUD + 作业计时终止，
-      Enter/Esc 关闭且不惊动播放器键盘）。jsdom + 真引擎全链路测试过。
-  - [x] 引擎分发：**没用 file: 包依赖**（会拖垮 CI 的 npm ci）——改四级路径回退解析
-        （EXEC_ENGINE_PATH → 部署副本 engine/ → node_modules → 生态兄弟目录），缺失静默降级
-  - [x] 单引擎实例：桥内按文档路径缓存引擎，跨放映存活；壳 stop 时统一 dispose
-  - [ ] Typora 实机验收走查（下条）
-- [x] **code-exec 退役存档**（2026-10-25）：完整快照存于 `archive/code-exec-2026-10-25/`
-      （含说明：各部分下落）；Typora-2 旧环境保留作二级备份。**不做薄壳化**——
-      编辑态执行改为 md2slides 壳的未来功能（壳内 editrender 同族），见其 TODO wishlist
-- [ ] **验收走查**：wordcount 标本在 md2slides 放映里跑通实训篇重放链
-      （setup → 步骤二 → 步骤三）
+- [x] **历史插件快照已移除**（2026-11-03）：原 code-exec 插件快照（含编辑器宿主适配与
+      第三方框架依赖）已从仓库与全部历史中删除，不再维护，也不提供安装/恢复指引。
 
 ## 之后
 
 - [x] **P2/P3（原"薄壳化 / marp 退役"）——方向改判，不再执行**（2026-10-25）：产品
-      收敛为双引擎双宿主，code-exec 整体退役存档（见上），不保留 obgnail 框架路径；
+      收敛为双引擎双宿主，旧插件整体退役（见上），不保留第三方框架路径；
       marp 已随 md2slides 新壳自然淘汰。编辑态执行若做，归 md2slides 壳（见其 wishlist）
 - [ ] **P4 引擎内功**（按痛感排期，不阻塞宿主）：
   - [ ] 三个常驻 harness（java-session / python-session / shell 的协议部分）收敛成一个
@@ -57,7 +44,7 @@
 
 ## 已完成
 
-- [x] 2026-10-25 从 Typora code-exec 提取核心：引擎门面 + 语言模块去壳 + 核心层平移，
+- [x] 2026-10-25 从旧版编辑器插件提取核心：引擎门面 + 语言模块去壳 + 核心层平移，
       9 套测试全绿（真实 JDK+hadoop 标本链路、anaconda 图捕获）+ wordcount 标本 CLI 走查
 - [x] 2026-10-25 修复 CLI 跑完不退出：常驻 JVM 的 stdio 管道撑住事件循环，
       一次性进程必须显式 `engine.dispose()`（已写进 README 消费方注意）

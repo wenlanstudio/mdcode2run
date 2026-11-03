@@ -7,9 +7,8 @@
  * 逐个 snippet 求值，值、用户输出、编译诊断、运行时异常分别收回，写成一份 JSON——
  * 与 runner_python.js 同一套契约：临时目录 + 源码文件 + spawn 实时管道（stdout 流式外发）+ 一份 JSON。
  *
- * harness 用 `java JsBlock.java`（JDK 11+ 的单文件源码启动），随用随编译，不在 Typora
- * 的安装目录里留任何东西（Program Files 下没有写权限）。代价是每次多一次编译（约 0.5s），
- * 换来的是"不在用户机器上预置产物、升级插件也不用重新编译"。
+ * harness 用 `java JsBlock.java`（JDK 11+ 的单文件源码启动），随用随编译，不在
+ * 用户机器上预置产物（Program Files 下也没有写权限）。代价是每次多一次编译（约 0.5s）。
  *
  * harness 本身保持纯 ASCII：它会被 javac 按平台默认编码（中文 Windows 是 GBK）读取，
  * 里面写中文就会变成乱码。用户代码一律走 block.jsh，由 harness 显式按 UTF-8 读。
@@ -274,7 +273,7 @@ const expandClassPath = (raw, baseDir = "") => {
       continue
     }
     // `dir/*`（也认 `dir/*.jar`）：收该目录下的 jar。目录不存在就原样留下——一个不存在的
-    // classpath 项对 JDK 无害，而在这里报错只会让读者以为是插件坏了。
+    // classpath 项对 JDK 无害，而在这里报错只会让读者以为是环境坏了。
     const dir = path.dirname(absolute)
     if (!fs.existsSync(dir)) {
       out.push(absolute)
@@ -296,7 +295,7 @@ const expandClassPath = (raw, baseDir = "") => {
 const runJava = async (javaExe, source, opts = {}) => {
   const timeout = Number(opts.timeout ?? 60000)
   const onChunk = opts.onChunk
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "typora-java-"))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mdcode2run-java-"))
   // class-path 走文件而不是命令行参数：Hadoop 全套 jar 展开后几万字符，塞进 argv 迟早撞上
   // Windows 的 32767 长度上限。
   if (opts.classPath) fs.writeFileSync(path.join(dir, "classpath.txt"), opts.classPath, "utf8")

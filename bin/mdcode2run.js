@@ -8,8 +8,8 @@
  *   mdcode2run run    <file.md> --at <行号> [--replay] [--timeout <ms>] [--json] [--config <file.json>]
  *   mdcode2run replay <file.md> --at <行号> [--json] [--config <file.json>]
  *
- * --config：JSON 文件，{ python:{…}, java:{…}, shell:{…}, mysql:{…} }——键与原
- * Typora settings.toml 的 [exec_*] 段一致。不传则全靠默认值 + 环境变量。
+ * --config：JSON 文件，{ python:{…}, java:{…}, shell:{…}, mysql:{…} }——键名沿用历史
+ * 配置约定。不传则全靠默认值 + 环境变量。
  *
  * 流式输出一律走 stderr（保持 stdout 干净，可安全重定向）；--json 模式只在结束时
  * 向 stdout 输出一份契约 JSON（图结果只报数量，不内联 data URL）。
@@ -88,7 +88,7 @@ const main = async () => {
   })
   // CLI 是一次性进程：干完活必须显式销毁常驻会话——JVM 的 stdio 管道会撑住事件循环，
   // 指望 process.on("exit") 里的兜底 dispose 永远等不到那一天（循环不排空 exit 不触发）。
-  // 原插件在 Typora 长驻进程里靠 10 分钟空闲回收器收尾，那是宿主形态给的福利，CLI 没有。
+  // 长驻宿主可以靠空闲回收器收尾，那是宿主形态给的福利，CLI 没有。
   const finish = () => engine.dispose()
   process.on("exit", finish)
 

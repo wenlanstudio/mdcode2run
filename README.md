@@ -1,8 +1,8 @@
 # MDCODE2RUN
 
 Markdown 代码执行引擎：**块角色标注 + 章会话 + file= 物化 + 过期链 + 重放 + 作业**。
-从 Typora 插件 code-exec 提取的无头核心——**引擎不知道 DOM 的存在**，结果只经
-结果契约 + 事件流交付，呈现归宿主（Typora 壳 / [md2slides](../md2slides) 放映器各自渲染）。
+无头核心——**引擎不知道 DOM 的存在**，结果只经结果契约 + 事件流交付，
+呈现归宿主（[md2slides](../md2slides) 放映器或任意自定义宿主）。
 
 与 md2slides 是姊妹引擎：一个管"怎么呈现"，一个管"怎么执行"，共享同一套架构铁律——
 core 不知道编辑器 / 放映的存在。
@@ -87,8 +87,8 @@ code-exec:
   mysql: { HOST: db.example.com, DATABASE: homework }
 ```
 
-引擎层配置键与原 Typora `settings.toml` 的 `[exec_*]` 段一致（`config.java.CLASS_PATH`、
-`config.shell.MODE/HOST/USER/PASSWORD`…），迁移旧的宿主配置即拷即用。
+引擎层配置键是普通对象（`config.java.CLASS_PATH`、`config.shell.MODE/HOST/USER/PASSWORD`…），
+持久化形式由宿主决定。
 
 ## 目录结构
 
@@ -100,12 +100,11 @@ front-matter.js        前言配置读取（code-exec.<段>.<键> → 顶层旧�
 sessions.js            会话注册表（懒建立 / 并发共享创建 / 死会话重建 / 空闲回收）
 chapter.js             章计划：setup/file/blocks 清单、内容指纹、file= 物化
 session-run.js         会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
-languages/             五个语言模块：认语言、查环境、给选项、路由 runner（原 plugins/ 去插件壳）
+languages/             五个语言模块：认语言、查环境、给选项、路由 runner
 runners/               八个执行器：python(.session) / java(.session) / shell / query / hive(beeline) / job（纯 Node）
 test/                  10 套测试；真实 JDK / anaconda / mysql / Hive 按 MDX_* 与默认路径门控
                        （fences、session-run 两套仍依赖本机标本，待 fixture 化）
 lab/                   实验原型：mrjob 一文档一作业（独立于主引擎，npm run test:mrjob）
-archive/               前身 code-exec 插件快照（只读，2026-10-25）
 TODO.md                路线图与已知问题
 ```
 
@@ -118,16 +117,6 @@ TODO.md                路线图与已知问题
    （shell put 的文件 java 读得到）；跨章天然隔离。
 4. **重放只有最后一块进流**——重放的意义是恢复状态，中间块的输出只会淹没观众。
 5. **重放跳过作业块**——重放必须幂等安全，重启作业是手动 ▶ 的事。
-
-## 与 Typora 插件版的差异
-
-- 删除：结果卡片 / 放映浮层 / ▶ 按钮 / marp 接线 / fence_enhance 适配 / BasePlugin 基座
-  （这些归宿主；原版见 Typora `resources/plugin/code-exec/`，本仓只读快照在
-  [archive/code-exec-2026-10-25](archive/code-exec-2026-10-25/)，两版并存，插件版未动）。
-- 删除：PYTHON_PATH 的 [matplotlib] 插件回退（Typora 生态问答）；需要等效行为就在
-  config.python.PYTHON_PATH 写同一路径。
-- 变化：事件从 DOM CustomEvent 改为 EventEmitter；会话注册表从模块级单例改为随引擎实例。
-- ssh2 从外挂目录（shell_exec_lib）改为正式 npm 依赖（纯 JS，不碍分发）。
 
 ## 已知边界
 

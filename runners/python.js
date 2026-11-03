@@ -1,10 +1,8 @@
 /**
  * Run one Python code block under a real interpreter and bring back everything it produced.
  *
- * It lives at the plugin root — not inside `matplotlib/` — because two consumers need it: the
- * matplotlib plugin, which only wants the figure, and exec_python, which wants the whole
- * notebook-style result (figures, tabular values, printed text, tracebacks). Same arrangement
- * as `dot-runner.js`, which graphviz and the marp deck pipeline share.
+ * Two consumers need it: one that only wants the figure, and one that wants the whole
+ * notebook-style result (figures, tabular values, printed text, tracebacks).
  *
  * Contract with the interpreter is one JSON file, not scraped text: whatever the block printed,
  * whatever figures it left open, the value of its trailing expression, and its traceback. That
@@ -35,7 +33,7 @@ const MAX_TEXT = 20000
  * The runner writes this and exits 0 even on error, so a missing file means the interpreter
  * itself never got far enough to write it — the only case that has to fall back to stderr.
  */
-const HARNESS = `"""Execute one Typora code block and report everything it produced as JSON.
+const HARNESS = `"""Execute one Markdown code block and report everything it produced as JSON.
 
 Written by runner_python.js beside the block source (block.py); sys.argv carries the two knobs the
 caller owns: the DPI figures are saved at, and the row cap of tabular renderings.
@@ -235,7 +233,7 @@ const runPython = async (pythonPath, source, opts = {}) => {
   const timeout = Number(opts.timeout ?? 30000)
   const maxRows = Number(opts.maxRows ?? 40)
   const onChunk = opts.onChunk
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "typora-py-"))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mdcode2run-py-"))
   const runner = path.join(dir, "runner.py")
   fs.writeFileSync(path.join(dir, "block.py"), source, "utf8")
   fs.writeFileSync(runner, HARNESS, "utf8")
@@ -294,7 +292,7 @@ const runPython = async (pythonPath, source, opts = {}) => {
 }
 
 /**
- * The matplotlib plugin's one need: the figure a block ended on, as a PNG data URL.
+ * The figure-only consumer's one need: the figure a block ended on, as a PNG data URL.
  * `at(-1)` keeps the long-standing behaviour (the figure current when the block ends), so a
  * block that builds several figures does not silently change what it shows today.
  *

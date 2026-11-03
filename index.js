@@ -2,11 +2,11 @@
 /**
  * mdcode2run —— Markdown 代码执行引擎。
  *
- * 从 Typora 插件 code-exec 提取的无头核心：四层架构原样保留——
+ * 无头核心：四层架构原样保留——
  *   ① Runner（runners/，纯 Node）→ ② 语言模块（languages/，能力/配置/路由）
  *   → ③ 编排（fences/sessions/chapter/session-run）→ 门面（本文件）。
  * 原来的 ④ 宿主适配与全部 UI（结果卡片 / 放映浮层 / ▶ 按钮）不进引擎——
- * 呈现归宿主（Typora 壳 / md2slides 放映器各自渲染结果契约）。
+ * 呈现归宿主（md2slides 放映器或任意自定义宿主渲染结果契约）。
  *
  * 铁律：引擎不知道 DOM 的存在。结果只经结果契约 + events 事件流交付：
  *   run(ctx) → { ok, kind, stdout, text, error, rows?, images?, session?, job? }
@@ -41,10 +41,10 @@ const RUNNABLE_ROLES = new Set(["code", "setup"])
 /**
  * @param {object} [opts]
  * @param {object} [opts.config] 宿主偏好：{ python: {PYTHON_PATH,…}, java: {JAVA_HOME, CLASS_PATH,…},
- *   shell: {MODE, HOST, USER, PASSWORD,…}, mysql: {CLIENT, HOST, …} }——键与原 Typora
- *   settings.toml 的 [exec_*] 段一致，秘密只放这层。
+ *   shell: {MODE, HOST, USER, PASSWORD,…}, mysql: {CLIENT, HOST, …} }——键名沿用历史配置约定，
+ *   秘密只放这层。
  * @param {string} [opts.documentPath] 当前文档路径（会话身份的锚）；空串 = 未存盘（会话
- *   key 不含路径，与插件版行为一致）。
+ *   key 不含路径）。
  * @param {string} [opts.documentDir] 文档所在目录（相对 class-path / 本机执行的基准）。
  */
 const createEngine = ({ config = {}, documentPath = "", documentDir = "" } = {}) => {

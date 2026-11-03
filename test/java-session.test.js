@@ -2,8 +2,7 @@
  * java-session.js 验收脚本——对**真实 JDK** 跑常驻 JShell 会话。
  *
  * `node java-session.test.js [标本路径]`。JDK 取环境变量 MDX_JDK_HOME（默认
- * D:/Program Files/Java/jdk-17.0.20.1）；没有 JDK 11+ 时跳过并正常退出（Typora 环境
- * 里执行不到本脚本，跑它纯属开发期验收）。
+ * D:/Program Files/Java/jdk-17.0.20.1）；没有 JDK 11+ 时跳过并正常退出。
  *
  * 覆盖：状态跨块存活、流式 stdout、编译诊断、运行时异常、reset 清状态、hadopp classpath
  * 下标本 setup→步骤二→步骤三 全链路（wordcount 实训篇复活的定义性证明）。

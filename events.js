@@ -2,7 +2,7 @@
 /**
  * 运行生命周期事件（引擎 → 消费者）——Node EventEmitter 版。
  *
- * Typora 插件原版走 document 上的 CustomEvent（marp 经 DOM 消费）；mdcode2run 是
+ * 旧版宿主的实现走 document 上的 CustomEvent；mdcode2run 是
  * 无 DOM 的引擎，呈现归宿主，事件只在引擎的 events（EventEmitter）上发。词汇不变：
  *
  *   started { family, line, surface }

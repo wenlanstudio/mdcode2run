@@ -1,7 +1,7 @@
 "use strict"
 /**
- * Hive 语言模块——```hive / ```hql / ```hiveql / ```sparksql 块的执行策略（原 plugins 无，
- * 按 TODO 的 query 方言路线新增：HiveQL 经 beeline 一次性执行，结构化行列回来）。
+ * Hive 语言模块——```hive / ```hql / ```hiveql / ```sparksql 块的执行策略。
+ * HiveQL 经 beeline 一次性执行，结构化行列回来。
  *
  * query 原型：与 mysql 同形——状态活在 HiveServer2 服务端，beeline 一次性来去，无常驻会话；
  * 重放在这里与运行等价。连接信息可由 front-matter `code-exec.hive.*` 覆盖（PASSWORD 除外，

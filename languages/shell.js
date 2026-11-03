@@ -1,6 +1,6 @@
 "use strict"
 /**
- * Shell 语言模块——```bash / ```sh / ```shell 块的执行策略（原 plugins/shell.js 去掉插件壳）。
+ * Shell 语言模块——```bash / ```sh / ```shell 块的执行策略。
  *
  * **一次性（非交互）**：没有 pty、没有面板输入行、没有持久会话。本地 `bash -c` 或
  * 远端 `ssh2 exec`，跑完即断。讲义里跨块的依赖应当是"数据状态"（如 HDFS 上的文件），

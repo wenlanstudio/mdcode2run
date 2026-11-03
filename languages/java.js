@@ -1,6 +1,6 @@
 "use strict"
 /**
- * Java 语言模块——```jshell / ```java 块的执行策略（原 plugins/java.js 去掉插件壳）。
+ * Java 语言模块——```jshell / ```java 块的执行策略。
  *
  * 跑法像 jshell：写了什么表达式，就看到它的值（执行走 jdk.jshell 的 API 而不是
  * `jshell` 命令行——见 runners/java.js）。有会话上下文走常驻 JShell——同章的块共享
@@ -51,7 +51,7 @@ const create = ({ config = {} } = {}) => {
 
   return {
     family: "java",
-    // LANGS 默认带上 "java"：讲义标本用 java 标注走 jshell 会话（原插件靠 settings.toml 补）
+    // LANGS 默认带上 "java"：讲义标本用 java 标注走 jshell 会话
     langs: (config.LANGS ?? ["jshell", "java"]).map(x => String(x).toLowerCase()),
 
     checkRuntime(ctx) {

@@ -11,7 +11,7 @@
  *   3) 远端 SSH 执行：ssh2 是纯 JS，不是原生模块，保留它不影响可移植性
  *   4) sudoFeed：把 `sudo xxx` 改写成喂密码的形式——没有 tty 时的必要变通，不是 bug
  *
- * 纯 Node：不依赖 Typora / DOM。
+ * 纯 Node：不依赖 DOM。
  */
 
 const fs = require("fs")
@@ -96,13 +96,13 @@ const resolveTarget = ({ raw, config = {}, frontMatter = {} }) => {
   if (mode === "local") return { mode: "local" }
   if (!host) {
     if (mode === "remote") {
-      return { error: "MODE=remote 但无法确定主机：请在代码块里加 `[user@host …]$` 提示符，或在 [exec_shell] 配置 HOST" }
+      return { error: "MODE=remote 但无法确定主机：请在代码块里加 `[user@host …]$` 提示符，或在 shell.HOST" }
     }
     return { mode: "local" }   // auto：解析不出 host 就本机跑
   }
   const user = prompt.user || String(config.USER ?? "").trim() || frontMatter.user || [...frontMatter.credentials.keys()][0] || ""
   if (!user) {
-    return { error: "远程执行需要用户名：请在代码块里加 `[user@host …]$` 提示符，或在 [exec_shell] 配置 USER" }
+    return { error: "远程执行需要用户名：请在代码块里加 `[user@host …]$` 提示符，或在 shell.USER" }
   }
   const creds = frontMatter.credentials ?? new Map()
   const password = creds.get(user) ?? creds.get(String(user).toLowerCase()) ?? String(config.PASSWORD ?? "").trim() ?? ""
@@ -143,7 +143,7 @@ const cap = (text, maxChars) => {
 const runLocal = (script, { config = {}, cwd, onChunk }) => {
   const shell = findLocalShell(config)
   if (!shell) {
-    throw new Error("未找到 bash：请安装 Git Bash，或在 [exec_shell] 配置 LOCAL_SHELL 指向 bash.exe")
+    throw new Error("未找到 bash：请安装 Git Bash，或在 shell.LOCAL_SHELL 指向 bash.exe")
   }
   const timeout = Number(config.LOCAL_TIMEOUT ?? DEFAULT_LOCAL_TIMEOUT) || DEFAULT_LOCAL_TIMEOUT
   const maxChars = Number(config.MAX_OUTPUT_CHARS ?? DEFAULT_MAX_CHARS) || DEFAULT_MAX_CHARS
@@ -180,7 +180,7 @@ const runLocal = (script, { config = {}, cwd, onChunk }) => {
 
 // ── 远端 SSH（ssh2，纯 JS）──────────────────────────────────────────────
 
-// ssh2 是纯 JS（不是原生模块），作为正式 npm 依赖随包分发——不再外挂插件根的 shell_exec_lib 目录。
+// ssh2 是纯 JS（不是原生模块），作为正式 npm 依赖随包分发——不再外挂 shell_exec_lib 目录。
 const loadSsh2 = () => {
   try { return require("ssh2") }
   catch (error) {
@@ -260,7 +260,7 @@ const connectRemote = async (ssh2, target, timeout) => {
     })
   }
   if (!attempts.length) {
-    throw new Error("既没有可用的免密凭据（agent/私钥），也没有可用的密码（frontmatter 或 [exec_shell] PASSWORD），无法连接")
+    throw new Error("既没有可用的免密凭据（agent/私钥），也没有可用的密码（frontmatter 或引擎配置 shell.PASSWORD），无法连接")
   }
   const errors = []
   for (const { label, cfg } of attempts) {

@@ -26,7 +26,7 @@ let nextId = 1
  */
 const startJob = ({ script, config = {}, cwd, onLog }) => {
   const shell = findLocalShell(config)
-  if (!shell) throw new Error("未找到 bash：请安装 Git Bash，或在 [exec_shell] 配置 LOCAL_SHELL 指向 bash.exe")
+  if (!shell) throw new Error("未找到 bash：请安装 Git Bash，或在 shell.LOCAL_SHELL 指向 bash.exe")
   const startedAt = Date.now()
   const id = nextId++
   const child = spawn(shell, ["-c", script], { cwd: cwd || process.cwd(), windowsHide: true })

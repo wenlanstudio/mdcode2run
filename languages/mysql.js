@@ -1,6 +1,6 @@
 "use strict"
 /**
- * MySQL 语言模块——```sql / ```mysql 块的执行策略（原 plugins/mysql.js 去掉插件壳）。
+ * MySQL 语言模块——```sql / ```mysql 块的执行策略。
  * query 原型：SQL 交给本机 mysql 客户端批处理执行，结果按结构化行列（rows）回来——
  * 查询的状态活在数据库服务端，客户端一次性来去（见 runners/query.js），所以不走
  * 常驻会话；重放在这里与运行等价。

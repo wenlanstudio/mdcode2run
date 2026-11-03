@@ -26,7 +26,7 @@ const { spawn } = require("child_process")
 
 const MAX_TEXT = 20000
 
-const HARNESS = String.raw`"""Persistent Typora python session: serve eval/reset requests forever.
+const HARNESS = String.raw`"""Persistent Python session: serve eval/reset requests forever.
 
 fd layout on arrival: 0 = requests (stdin), 1 = protocol (dup'd to PROTO before the
 redirect), 3 = user stdout pipe, 4 = user stderr pipe. After dup2, everything the user
