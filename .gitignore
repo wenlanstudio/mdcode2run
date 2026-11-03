@@ -1,1 +1,13 @@
 node_modules/
+
+# 运行时生成：mr-job 原型每次运行重建（含本机绝对路径与物化产物）
+.mdjob/
+
+# 临时 / OS
+__pycache__/
+*.pyc
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db

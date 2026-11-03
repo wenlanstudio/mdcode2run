@@ -6,9 +6,29 @@
   "bin": {
     "mdcode2run": "bin/mdcode2run.js"
   },
+  "files": [
+    "index.js",
+    "fences.js",
+    "front-matter.js",
+    "sessions.js",
+    "chapter.js",
+    "session-run.js",
+    "events.js",
+    "bin/",
+    "languages/",
+    "runners/"
+  ],
   "scripts": {
     "test": "node test/run-all.js",
-    "test:quick": "node test/run-all.js --quick"
+    "test:quick": "node test/run-all.js --quick",
+    "test:mrjob": "node lab/mrjob/test.js"
+  },
+  "engines": {
+    "node": ">=16.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quqingyuan/mdcode2run.git"
   },
   "license": "MIT",
   "dependencies": {
