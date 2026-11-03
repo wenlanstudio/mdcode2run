@@ -26,6 +26,7 @@ const LANGUAGES = {
   java: require("./languages/java"),
   shell: require("./languages/shell"),
   mysql: require("./languages/mysql"),
+  hive: require("./languages/hive"),
 }
 
 /** 契约失败结果的标准形状（与 runners 的失败返回同构）。 */
