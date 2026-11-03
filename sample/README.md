@@ -13,6 +13,12 @@
 `test/fixtures/4-1-1-Hadoop_MapReduce.specimen.md` 是测试专用标本
 （依赖 Hadoop classpath，不适合直接参照），演示 tunnel/job 等进阶形态。
 
+## mrjob/ —— 实验原型（非参照样本）
+
+`mrjob/` 是「一文档一 MapReduce 作业」的协议原型（骨架 front-matter + 正文只写
+方法体片段，引擎织入成完整 Java 工程）。独立于主引擎，不计入上表；
+自测走 `npm run test:mrjob`。走通后再决定是否收敛进主引擎词汇。
+
 ## 怎么跑
 
 ```bash

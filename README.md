@@ -140,7 +140,8 @@ test/                   测试套件（run-all.js 自动纳管）；测试标本
                        按 MDX_* 门控，缺环境时对应段自动跳过
 sample/                可运行讲义样本（给老师参照）：python / java 基础各一份，
                        真跑验证过，复制改内容即成第一份讲义；见 sample/README.md
-lab/                   实验原型：mrjob 一文档一作业（独立于主引擎，npm run test:mrjob）
+sample/mrjob/          实验原型：mrjob 一文档一 MapReduce 作业（独立于主引擎，
+                       npm run test:mrjob，不在 run-all 批里）
 TODO.md                路线图与已知问题
 ```
 

@@ -72,7 +72,7 @@ mdcode2run 是 Markdown 代码执行引擎：**块角色标注 + 章会话 + fil
   test/                  测试套件（run-all.js 自动纳管新文件）+ fixtures/ 测试标本
   sample/                可运行讲义样本（老师参照用）：python/java 基础，
                          真跑验证过；specimen 命名沿用
-  lab/mrjob/             实验原型：一文档一 MapReduce 作业（独立于主引擎，
+  sample/mrjob/           实验原型：一文档一 MapReduce 作业（独立于主引擎，
                          npm run test:mrjob，不在 run-all 批里）
 ```
 
@@ -105,7 +105,7 @@ engine.dispose()                         // 宿主关文档时回收全部常驻
 ```bash
 npm test          # 全量：真实 JDK / anaconda / mysql / Hive 按 MDX_* 门控，缺环境自动跳过
 npm run test:quick    # 跳过 java-session / python-session 两套（CI 就跑这个）
-npm run test:mrjob    # lab/mrjob 原型，独立于主引擎
+npm run test:mrjob    # sample/mrjob 原型，独立于主引擎
 node test/fences.test.js   # 单套直接跑（每套都是独立进程、零依赖）
 ```
 
