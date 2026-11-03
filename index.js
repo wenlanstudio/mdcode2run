@@ -12,14 +12,16 @@
  *   run(ctx) → { ok, kind, stdout, text, error, rows?, images?, session?, job? }
  *   events: started {family,line,surface} / chunk {…,stream,text} / done {…,ok,duration,error?}
  *
- * 配置三层（DESIGN §7）：fence meta（块级）> front-matter code-exec:（文档级）>
- * createEngine 的 config（宿主偏好，持有全部秘密：PYTHON_PATH / JAVA_HOME / 密码 / ssh 档案）。
+ * 配置六层（DESIGN §4）：tech < course < doc(front-matter preset+override) < chapter < block < engine；
+ * engine 层持有全部秘密（config.secrets 供 ${NAME} 占位符取真值，config.<family> 直配兜底）。
+ * v1 实现 tech/course/doc/engine 四层；chapter/block override 留位。
  */
 
 const path = require("path")
 const { parseFences, parseChapters, locateFence } = require("./fences")
 const { frontMatterOf } = require("./front-matter")
 const { createRunEvents } = require("./events")
+const { BUILTIN_TECHS, BUILTIN_COURSES, resolveFamily, presetNameOf } = require("./preset")
 
 const LANGUAGES = {
   python: require("./languages/python"),
@@ -40,24 +42,29 @@ const RUNNABLE_ROLES = new Set(["code", "setup"])
 
 /**
  * @param {object} [opts]
- * @param {object} [opts.config] 宿主偏好：{ python: {PYTHON_PATH,…}, java: {JAVA_HOME, CLASS_PATH,…},
- *   shell: {MODE, HOST, USER, PASSWORD,…}, mysql: {CLIENT, HOST, …} }——键名沿用历史配置约定，
- *   秘密只放这层。
+ * @param {object} [opts.config] engine 层：{ <family>: {KEY,…} } 直配（无 preset 时的
+ *   唯一来源，可放秘密）+ { secrets: {NAME: 真值} } 供 preset 的 ${NAME} 占位符取值。
+ * @param {object} [opts.techs] 技术 schema 追加/覆盖（键合入内置五族）
+ * @param {object} [opts.courses] 课程装订追加/覆盖（键合入内置六门课）
  * @param {string} [opts.documentPath] 当前文档路径（会话身份的锚）；空串 = 未存盘（会话
  *   key 不含路径）。
  * @param {string} [opts.documentDir] 文档所在目录（相对 class-path / 本机执行的基准）。
  */
-const createEngine = ({ config = {}, documentPath = "", documentDir = "" } = {}) => {
+const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = "", documentDir = "" } = {}) => {
+  const techTable = { ...BUILTIN_TECHS, ...techs }
+  const courseTable = { ...BUILTIN_COURSES, ...courses }
+  const secrets = (config && typeof config.secrets === "object" && config.secrets) || {}
   const events = createRunEvents()
-  const mods = new Map()   // family → 语言模块（懒建；会话注册表随模块走）
+  const baseMods = new Map()   // family → 语言模块（langs 探测 + 无 preset 时的执行实现）
+  const docMods = new Map()    // `${documentPath}#${family}` → preset 解析后的执行模块
 
-  const mod = family => {
-    if (!mods.has(family)) {
+  const baseMod = family => {
+    if (!baseMods.has(family)) {
       const factory = LANGUAGES[family]
       if (!factory) return null
-      mods.set(family, factory.create({ config: config[family] ?? {} }))
+      baseMods.set(family, factory.create({ config: config[family] ?? {} }))
     }
-    return mods.get(family)
+    return baseMods.get(family)
   }
 
   /** 语言标记 → 语言族。LANGS 在引擎配置层（config.<family>.LANGS），不在前言层。 */
@@ -65,14 +72,49 @@ const createEngine = ({ config = {}, documentPath = "", documentDir = "" } = {})
     const key = String(lang ?? "").toLowerCase()
     if (!key) return null
     for (const name of Object.keys(LANGUAGES)) {
-      if (mod(name).langs.includes(key)) return name
+      if (baseMod(name).langs.includes(key)) return name
     }
     return null
   }
 
+  /**
+   * 执行模块：文档 front-matter 带 `preset: <课程名>` 时按六层解析
+   * （tech 默认 < course 装订 < doc 覆盖，${NAME} 去 engine 层取真值），
+   * 解析失败返回报错壳模块（运行时给出明确人话）；不带 preset 走现状直配。
+   * 按文档缓存——同一引擎开多篇文档互不串配置。
+   */
+  const execMod = (family, fm) => {
+    const key = `${documentPath || "anon"}#${family}`
+    if (docMods.has(key)) return docMods.get(key)
+    const base = baseMod(family)
+    if (!base) return null
+    let m = base
+    const presetName = presetNameOf(fm)
+    if (presetName) {
+      const { config: resolved, problems } = resolveFamily({
+        family, courseName: presetName, techs: techTable, courses: courseTable, secrets,
+        docOverride: fm?.codeExec?.[family] ?? {},
+      })
+      if (problems.length) {
+        const message = `环境档案解析失败（preset: ${presetName}）：${problems.join("；")}`
+        m = {
+          family, langs: base.langs,
+          checkRuntime: () => ({ ok: false, message }),
+          runOpts: () => ({}),
+          run: async () => contractFail(message),
+          resetSession: () => {}, dispose: () => {},
+        }
+      } else {
+        m = LANGUAGES[family].create({ config: resolved })
+      }
+    }
+    docMods.set(key, m)
+    return m
+  }
+
   /** 由 fence 构造运行上下文。chapter 定位失败时 session.key = null（退回一次性执行）。 */
   const ctxOf = (md, fence, family, precomputed = {}) => {
-    const m = mod(family)
+    const m = baseMod(family)
     const fences = precomputed.fences ?? parseFences(md)
     const chapters = precomputed.chapters ?? parseChapters(md, fences)
     const fm = precomputed.fm ?? frontMatterOf(md)
@@ -153,7 +195,7 @@ const createEngine = ({ config = {}, documentPath = "", documentDir = "" } = {})
    *   done 兑现 { code, signal, killed, durationMs, error? }。引擎不抛执行错误——失败走契约。
    */
   const run = async (ctx, { onChunk, replay = false, timeout } = {}) => {
-    const m = mod(ctx.family)
+    const m = execMod(ctx.family, ctx.doc.fm)
     const detail = { family: ctx.family, line: ctx.line, surface: "api" }
     const check = m.checkRuntime(ctx)
     if (!check.ok) return contractFail(check.message)
@@ -185,16 +227,17 @@ const createEngine = ({ config = {}, documentPath = "", documentDir = "" } = {})
 
   /** ⟳ 销毁会话。参数：locate() 的 ctx，或 {family, key}，或裸 key（广播到全部语言族）。 */
   const resetSession = target => {
+    const all = [...baseMods.values(), ...docMods.values()]
     if (typeof target === "string") {
-      for (const m of mods.values()) m.resetSession({ key: target })
+      for (const m of all) m.resetSession({ key: target })
       return
     }
     const family = target.family ?? target.session?.family
-    if (family && mods.has(family)) mods.get(family).resetSession(target.session ?? target)
+    if (family) for (const m of all) if (m.family === family) m.resetSession(target.session ?? target)
   }
 
   /** 退出前回收：销毁全部常驻会话（宿主关文档时调用）。 */
-  const dispose = () => { for (const m of mods.values()) m.dispose?.() }
+  const dispose = () => { for (const m of [...baseMods.values(), ...docMods.values()]) m.dispose?.() }
 
   return { events, parse, locate, run, replay, resetSession, dispose, config }
 }

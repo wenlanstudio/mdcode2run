@@ -81,13 +81,33 @@ info-string 的权威规则见 [`FENCE.md`](./FENCE.md)（语法、冲突矩阵�
 （`session=`/`dialect=`/`workdir=` 已按 DESIGN §12 删除——六门课零需求。
 写它们记 `未知标注` problem、块降级展示；SQL 方言用直标围栏 ` ```hive ` 等。）
 
-## 配置三层
+## 环境配置（preset 六层，DESIGN §4）
 
 ```
-fence meta（块级） > front-matter code-exec:（文档级） > createEngine config（引擎层，持秘密）
+tech（技术 schema+默认） < course（课程装订） < doc（front-matter） < chapter < block < engine（秘密）
 ```
 
-front-matter 示例（讲义自包含，可进 git；密码永远只在引擎层）：
+老师只写一个词——front-matter 里 `preset: <课程名>`，环境全到位：
+
+```yaml
+---
+title: Hive 数据仓库实验
+preset: hive-course        # 内置六门课：java-basic / hadoop-mr / python-data /
+---                        # hive-course / linux-local / linux-remote
+```
+
+课程里引用的秘密用 `${NAME}` 占位符，真值只放引擎层 `config.secrets`：
+
+```json
+{ "secrets": { "ANACONDA": "D:/ProgramData/anaconda3/python.exe", "CLUSTER_PW": "…" } }
+```
+
+不带 preset 的文档走直配（`config.<family>` 直接生效）。三条护栏：覆盖只能盖 tech
+schema 声明过的参数（白名单）、执行器按语言族硬绑（runner 锁定）、秘密参数在
+course/doc 层禁写明文（只能 `${NAME}`）。自定义课程/技术经 `createEngine({ techs,
+courses })` 或 CLI `--config` 里的 `techs`/`courses` 键合入内置表。
+
+front-matter 直配仍可用（讲义自包含，可进 git；密码永远只在引擎层）：
 
 ```yaml
 code-exec:
@@ -103,6 +123,7 @@ code-exec:
 
 ```
 index.js               引擎门面（parse / locate / run / replay / resetSession / events）
+preset.js              preset 六层解析核心（tech/course 装订 + 三护栏，纯函数）
 bin/mdcode2run.js      CLI（list / run / replay，--json 走契约）
 fences.js              块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）
 front-matter.js        前言配置读取（code-exec.<段>.<键> → 顶层旧写法）

@@ -8,8 +8,9 @@
  *   mdcode2run run    <file.md> --at <行号> [--replay] [--timeout <ms>] [--json] [--config <file.json>]
  *   mdcode2run replay <file.md> --at <行号> [--json] [--config <file.json>]
  *
- * --config：JSON 文件，{ python:{…}, java:{…}, shell:{…}, mysql:{…} }——键名沿用历史
- * 配置约定。不传则全靠默认值 + 环境变量。
+ * --config：JSON 文件，{ python:{…}, java:{…}, … } 直配 + { secrets:{NAME:真值} }
+ * 供 preset 的 ${NAME} 占位符取值 + 可选 { techs:{…}, courses:{…} } 外置环境档案
+ * （合入内置 schema 与六门课）。不传则全靠默认值 + 环境变量。
  *
  * 流式输出一律走 stderr（保持 stdout 干净，可安全重定向）；--json 模式只在结束时
  * 向 stdout 输出一份契约 JSON（图结果只报数量，不内联 data URL）。
@@ -81,8 +82,11 @@ const main = async () => {
   if (!["list", "run", "replay"].includes(cmd)) die(`未知命令 ${cmd}\n` + USAGE)
   const md = fs.readFileSync(file, "utf8")
   const abs = path.resolve(file)
+  const profile = loadConfig(args.configFile)
   const engine = createEngine({
-    config: loadConfig(args.configFile),
+    config: profile,
+    techs: profile.techs,
+    courses: profile.courses,
     documentPath: abs,
     documentDir: path.dirname(abs),
   })
