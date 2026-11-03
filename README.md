@@ -19,6 +19,8 @@ npm install
 node bin/mdcode2run.js list   讲义.md                  # 盘点：哪些块可跑、什么角色
 node bin/mdcode2run.js run    讲义.md --at 128          # 跑第 128 行所在的块（行号 1 基）
 node bin/mdcode2run.js replay 讲义.md --at 360          # 从本章第一个可跑块连跑到这里
+node bin/mdcode2run.js run    讲义.md --at 360 --trace  # 执行即录制到 讲义.md.trace（sidecar）
+node bin/mdcode2run.js replay 讲义.md --trace          # 按录制序重演整篇（含重跑；改动块标 stale 跳过）
 npm test                                                # 10 套测试（真实 JDK / anaconda 自动门控）
 ```
 
@@ -124,6 +126,7 @@ code-exec:
 ```
 index.js               引擎门面（parse / locate / run / replay / resetSession / journalOf / events）
 journal.js             执行日志（章作用域 ▶ 序列；result.session.seq + journalOf 供宿主渲染）
+trace.js               trace sidecar 纯函数层（JSONL 序列化/校验/重演计划；文件 I/O 在门面）
 preset.js              preset 六层解析核心（tech/course 装订 + 三护栏，纯函数）
 bin/mdcode2run.js      CLI（list / run / replay，--json 走契约）
 fences.js              块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）

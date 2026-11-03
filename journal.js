@@ -10,8 +10,8 @@
  * 靠序号对齐：#2 print(a) → 1、#4 print(a) → 2。宿主拿 journal.of(key) 渲染轨迹，
  * 拿 result.session.seq 显示「▶ ran #N」。
  *
- * 这是引擎内存里的易失状态（随引擎实例存亡）；§7 的 trace sidecar（.md.trace，
- * 随讲义分发）是后续里程碑，落盘格式届时从这里导出。
+ * trace sidecar（DESIGN §7，trace.js）是 journal 的持久化镜像：all()/merge()
+ * 供引擎序列化落盘与加载合并（同 key 同 n 判重），文件 I/O 在引擎门面，不在本层。
  */
 
 /** @returns {{ record: Function, of: Function, drop: Function }} */
@@ -31,6 +31,21 @@ const createJournal = () => {
     /** 某章的日志快照（深拷贝副本，改快照不伤内部）；无记录返回 []。 */
     of(key) {
       return (chapters.get(key) ?? []).map(e => ({ ...e }))
+    },
+
+    /** 全部章的条目视图（trace 序列化用）：[{key, entries}]，章按插入序。 */
+    all() {
+      return [...chapters.entries()].map(([key, list]) => ({ key, entries: list.map(e => ({ ...e })) }))
+    },
+
+    /** 合并一条（trace 加载用）：同 key 同 n 已存在则跳过；返回是否并入。 */
+    merge(key, entry) {
+      const list = chapters.get(key) ?? []
+      if (list.some(e => e.n === entry.n)) return false
+      list.push({ ...entry })
+      list.sort((a, b) => a.n - b.n)
+      chapters.set(key, list)
+      return true
     },
 
     drop(key) {

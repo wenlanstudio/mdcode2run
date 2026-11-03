@@ -17,12 +17,14 @@
  * v1 实现 tech/course/doc/engine 四层；chapter/block override 留位。
  */
 
+const fs = require("fs")
 const path = require("path")
 const { parseFences, parseChapters, locateFence } = require("./fences")
 const { frontMatterOf } = require("./front-matter")
 const { createRunEvents } = require("./events")
 const { BUILTIN_TECHS, BUILTIN_COURSES, resolveFamily, presetNameOf } = require("./preset")
 const { createJournal } = require("./journal")
+const { serializeTrace, parseTrace, planTrace } = require("./trace")
 const { fnv1a } = require("./chapter")
 
 const LANGUAGES = {
@@ -51,8 +53,10 @@ const RUNNABLE_ROLES = new Set(["code", "setup"])
  * @param {string} [opts.documentPath] 当前文档路径（会话身份的锚）；空串 = 未存盘（会话
  *   key 不含路径）。
  * @param {string} [opts.documentDir] 文档所在目录（相对 class-path / 本机执行的基准）。
+ * @param {string} [opts.tracePath] trace sidecar 路径（DESIGN §7，如 lec3.md.trace）。
+ *   给了则启动时自动加载合并、每次记账自动追加一行；不给 = 纯内存 journal。
  */
-const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = "", documentDir = "" } = {}) => {
+const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = "", documentDir = "", tracePath = "" } = {}) => {
   const techTable = { ...BUILTIN_TECHS, ...techs }
   const courseTable = { ...BUILTIN_COURSES, ...courses }
   const secrets = (config && typeof config.secrets === "object" && config.secrets) || {}
@@ -193,11 +197,12 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
   /**
    * 跑一块代码（或重放到它）。
    * @param {object} ctx locate() 的返回
-   * @param {object} [opts] { onChunk?: ({stream,text}) => void, replay?: boolean, timeout?: number }
+   * @param {object} [opts] { onChunk?: ({stream,text}) => void, replay?: boolean, timeout?: number, src?: "run"|"trace" }
    * @returns 契约结果；作业模式 result.kind === "job" 时 result.job = { id, stop, done }，
    *   done 兑现 { code, signal, killed, durationMs, error? }。引擎不抛执行错误——失败走契约。
    */
-  const run = async (ctx, { onChunk, replay = false, timeout } = {}) => {
+  const run = async (ctx, optsIn = {}) => {
+    const { onChunk, replay = false, timeout, src: srcIn } = optsIn
     const m = execMod(ctx.family, ctx.doc.fm)
     const detail = { family: ctx.family, line: ctx.line, surface: "api" }
     const check = m.checkRuntime(ctx)
@@ -212,34 +217,41 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
 
     const started = Date.now()
     events.emit("started", detail)
+    const src = replay ? "replay" : srcIn ?? "run"
     try {
       const result = await m.run(ctx.source, opts)
       // 作业模式：启动即返回——本次"运行"在事件契约里已经 done（作业退出是另一个生命周期，
       // 消费者 await result.job.done）
       events.emit("done", { ...detail, ok: result.kind === "job" ? true : !!result.ok, duration: (Date.now() - started) / 1000, error: result.error || undefined })
-      recordRun(ctx, result, started)
+      recordRun(ctx, result, started, src)
       return result
     } catch (error) {
       const msg = error?.message ?? String(error)
       events.emit("done", { ...detail, ok: false, duration: (Date.now() - started) / 1000, error: msg })
       const failed = contractFail(msg)
-      recordRun(ctx, failed, started)
+      recordRun(ctx, failed, started, src)
       return failed
     }
   }
 
   /**
    * 执行日志记账（DESIGN §7）：每次真执行（checkRuntime 通过后的 ▶，含失败与作业
-   * 启动）记一条，章作用域。早期失败（checkRuntime / preset 解析）没跑任何东西，
-   * 不记账。序号回填进 result.session.seq 供宿主显示「▶ ran #N」。
+   * 启动）记一条，章作用域。src 标执行来源（run / replay / trace）。早期失败
+   * （checkRuntime / preset 解析）没跑任何东西，不记账。序号回填进
+   * result.session.seq 供宿主显示「▶ ran #N」。
    */
-  const recordRun = (ctx, result, started) => {
+  const recordRun = (ctx, result, started, src = "run") => {
     if (!ctx.session) return
-    const seq = journal.record(ctx.session.workdirKey, {
+    const entry = {
       family: ctx.family, line: ctx.line, hash: fnv1a(ctx.source),
-      ok: result.kind === "job" ? true : !!result.ok, ts: started,
-    })
+      ok: result.kind === "job" ? true : !!result.ok, ts: started, src,
+    }
+    const seq = journal.record(ctx.session.workdirKey, entry)
     if (result.session) result.session.seq = seq
+    if (tracePath) {
+      const ch = Number(ctx.session.workdirKey.slice(ctx.session.workdirKey.lastIndexOf("#") + 1))
+      traceAppend(JSON.stringify({ ch, n: seq, ...entry }))
+    }
   }
 
   /** ⏩ 重放到某块：从本章第一个可跑块按文档序连跑到 ctx（作业块跳过并注明）。 */
@@ -247,6 +259,75 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
 
   /** 📜 某章的执行日志快照（DESIGN §7）：宿主渲染 ▶ 轨迹用。chapterLine 为 0 基章行号。 */
   const journalOf = chapterLine => journal.of(`${documentPath}#${chapterLine}`)
+
+  // ── trace sidecar（DESIGN §7）：journal 的持久化镜像 ──
+
+  const traceAppend = line => {
+    // 头行自愈：CLI 是一次性进程，首次 append 时文件多半不存在——头（版本+归属）
+    // 必须在，否则下次启动 parseTrace 会把它当「版本不符」拒载
+    if (!fs.existsSync(tracePath) || !fs.readFileSync(tracePath, "utf8").trim()) {
+      fs.writeFileSync(tracePath, JSON.stringify({ v: 1, doc: documentPath }) + "\n", "utf8")
+    }
+    fs.appendFileSync(tracePath, line + "\n", "utf8")
+  }
+
+  /** journal 全视图的章形态（trace 序列化/重演共用）：[{ch, entries}]。 */
+  const traceChapters = chapterLine => journal.all()
+    .map(({ key, entries }) => ({ ch: Number(key.slice(key.lastIndexOf("#") + 1)), entries }))
+    .filter(c => chapterLine == null || c.ch === chapterLine)
+
+  /** 序列化为 JSONL（宿主自己想存哪存哪）。chapterLine 缺省 = 全部章。 */
+  const traceOf = (chapterLine = null) => serializeTrace(traceChapters(chapterLine), documentPath, chapterLine)
+
+  /**
+   * 合并 JSONL 进 journal（低阶，宿主手动管文件时用）：同 ch+n 判重，append-only。
+   * 文档归属/版本不符拒绝（返回 ok:false + error 人话）。
+   */
+  const traceLoad = jsonl => {
+    const { ok, error, entries } = parseTrace(jsonl, documentPath)
+    if (!ok) return { ok, loaded: 0, skipped: 0, error }
+    let loaded = 0, skipped = 0
+    for (const e of entries) journal.merge(`${documentPath}#${e.ch}`, e) ? loaded += 1 : skipped += 1
+    return { ok: true, loaded, skipped }
+  }
+
+  /**
+   * ⏮ Replay Trace（DESIGN §7）：按录制序重演 journal 里的执行序列。
+   * 逐条定位当前 md 的块，hash 一致照跑、变了标 stale 跳过（onMismatch:"stop"
+   * 改为中止）；首次执行失败即停（失败后状态已分叉，续跑是假复现）。
+   * 章边界无需显式重建——会话身份含章行号，跨章天然换会话。
+   * @param {string} md 当前文档源码
+   * @param {object} [opts] { chapterLine?, onMismatch?: "skip"|"stop", onChunk?, timeout? }
+   * @returns {total, ran, stale: number[], stoppedAt: object|null}
+   */
+  const replayTrace = async (md, { chapterLine, onMismatch = "skip", onChunk, timeout } = {}) => {
+    const seq = traceChapters(chapterLine)
+      .flatMap(({ ch, entries }) => entries.map(e => ({ ch, ...e })))
+      .sort((a, b) => a.ch - b.ch || a.n - b.n)
+    const plan = planTrace(seq, parse(md))
+    let ran = 0
+    const stale = []
+    let stoppedAt = null
+    for (const step of plan) {
+      if (step.action !== "run") {
+        stale.push(step.entry.line)
+        if (onMismatch === "stop") { stoppedAt = { ...step.entry, why: "stale" }; break }
+        continue
+      }
+      const ctx = locate(md, { index: step.blockIndex })
+      if (!ctx) { stale.push(step.entry.line); continue }   // 防御：语言支持变化等
+      const result = await run(ctx, { onChunk, timeout, src: "trace" })
+      ran += 1
+      if (!result.ok && result.kind !== "job") { stoppedAt = { ...step.entry, why: "failed" }; break }
+    }
+    return { total: seq.length, ran, stale, stoppedAt }
+  }
+
+  // tracePath 给了则启动时自动加载（损坏/归属不符静默降级为纯内存日志——
+  // trace 是辅助态，不该挡文档打开；宿主要自查可拿显式 traceLoad 的返回）
+  if (tracePath && fs.existsSync(tracePath)) {
+    try { traceLoad(fs.readFileSync(tracePath, "utf8")) } catch { /* 留纯内存 */ }
+  }
 
   /** ⟳ 销毁会话。参数：locate() 的 ctx，或 {family, key}，或裸 key（广播到全部语言族）。 */
   const resetSession = target => {
@@ -262,7 +343,7 @@ const createEngine = ({ config = {}, techs = {}, courses = {}, documentPath = ""
   /** 退出前回收：销毁全部常驻会话（宿主关文档时调用）。 */
   const dispose = () => { for (const m of [...baseMods.values(), ...docMods.values()]) m.dispose?.() }
 
-  return { events, parse, locate, run, replay, resetSession, dispose, config, journalOf }
+  return { events, parse, locate, run, replay, resetSession, dispose, config, journalOf, traceOf, traceLoad, replayTrace, tracePath }
 }
 
 module.exports = { createEngine, contractFail }

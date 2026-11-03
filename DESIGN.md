@@ -180,7 +180,19 @@ Chapter（h1）
 
 重跑型手册（step3 改 a 后重跑 step2 看变化）：Run All 漏掉重跑所见的状态，Replay Trace 才忠实。
 
-**trace 住哪：sidecar，不进 md**。md 正文始终干净。trace 存 `lec3.md.trace` 或 front-matter `exec.trace: ./lec3.trace`。老师跑通一遍→存 trace→随讲义分发；进不进 git 由老师定（进 = 复现可复核，不进 = 只当源码）。
+**trace 住哪：sidecar，不进 md**。md 正文始终干净。trace 存 `lec3.md.trace`（同目录伴生；front-matter 最多放一句 `exec.trace:` 指针，指认位置而非替身——front-matter 是人写的声明，trace 是机器记的事实，生命周期相反，混放会让每次 ▶ 都回写 md）。老师跑通一遍→存 trace→随讲义分发；进不进 git 由老师定（进 = 复现可复核，不进 = 只当源码）。
+
+**trace 实现（v1 已落地）**：journal（内存）的持久化镜像，三层职责：
+
+| 层 | 职责 | 位置 |
+|---|---|---|
+| serialize / parse / plan | 纯函数：JSONL 序列化、加载校验（版本+文档归属，坏行计数不致命）、重演计划（hash 一致→run，变了→stale） | `trace.js`（零 I/O） |
+| journal.all / merge | 全视图导出、按 ch+n 判重合并（append-only，永不覆盖） | `journal.js` |
+| traceOf / traceLoad / replayTrace | 文件读写、`createEngine({tracePath})` 自动加载+自动追加、按录制序重演 | 引擎门面 |
+
+JSONL 格式：首行头 `{v:1, doc}`，之后每行一条 `{ch, n, family, line, hash, ok, ts, src}`——追加即写一行、git diff 友好、坏了只坏一行。`src` 标执行来源（run/replay/trace），重演产生的执行也记账（journal = 全部真实 ▶），宿主可按 src 过滤显示。
+
+**Replay Trace 语义**：逐条定位当前 md 的块，hash 一致照跑、变了标 stale 跳过（`onMismatch:"stop"` 改中止——默认宽容：老师微调讲义后重演，「还能跑的都跑，变了的告诉我」）；首次执行失败即停（失败后状态已分叉，续跑是假复现）；章边界无需显式重建（会话身份含章行号，跨章天然换会话）。**单写者**：一个 trace 文件同一时刻归一个 engine 实例。
 
 ## 8. 失效传播（stale）
 

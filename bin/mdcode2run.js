@@ -7,6 +7,11 @@
  *   mdcode2run list   <file.md> [--json]
  *   mdcode2run run    <file.md> --at <行号> [--replay] [--timeout <ms>] [--json] [--config <file.json>]
  *   mdcode2run replay <file.md> --at <行号> [--json] [--config <file.json>]
+ *   mdcode2run replay <file.md> --trace [--json] [--config <file.json>]   按 .trace 录制序重演整篇
+ *
+ * --trace：trace sidecar（DESIGN §7）开关，文件固定为 <file.md>.trace（同目录伴生）。
+ * 任何命令带上它，执行即追加落盘（录制）；replay 带上它 = 按录制序重演整篇
+ * （含重跑序列；讲义改动过的块标 stale 跳过）。
  *
  * --config：JSON 文件，{ python:{…}, java:{…}, … } 直配 + { secrets:{NAME:真值} }
  * 供 preset 的 ${NAME} 占位符取值 + 可选 { techs:{…}, courses:{…} } 外置环境档案
@@ -24,8 +29,10 @@ const USAGE = `用法:
   mdcode2run list   <file.md> [--json]
   mdcode2run run    <file.md> --at <行号> [--replay] [--timeout <ms>] [--json] [--config <file.json>]
   mdcode2run replay <file.md> --at <行号> [--json] [--config <file.json>]
+  mdcode2run replay <file.md> --trace [--json] [--config <file.json>]
 
-行号从 1 开始；执行流式输出走 stderr，最终报告走 stdout。`
+行号从 1 开始；执行流式输出走 stderr，最终报告走 stdout。
+--trace 录制到 <file.md>.trace（执行即落盘）；replay --trace 按录制序重演整篇。`
 
 const die = (message, code = 2) => { console.error(`mdcode2run: ${message}`); process.exit(code) }
 
@@ -35,6 +42,7 @@ const parseArgs = argv => {
     const a = argv[i]
     if (a === "--json") args.json = true
     else if (a === "--replay") args.replay = true
+    else if (a === "--trace") args.trace = true
     else if (a === "--at") args.at = Number(argv[++i])
     else if (a === "--timeout") args.timeout = Number(argv[++i])
     else if (a === "--config") args.configFile = argv[++i]
@@ -89,6 +97,7 @@ const main = async () => {
     courses: profile.courses,
     documentPath: abs,
     documentDir: path.dirname(abs),
+    tracePath: args.trace ? abs + ".trace" : "",
   })
   // CLI 是一次性进程：干完活必须显式销毁常驻会话——JVM 的 stdio 管道会撑住事件循环，
   // 指望 process.on("exit") 里的兜底 dispose 永远等不到那一天（循环不排空 exit 不触发）。
@@ -116,6 +125,27 @@ const main = async () => {
       ].filter(Boolean).join(" · ")
       console.log(`${String(b.line + 1).padStart(5)}  ${b.lang.padEnd(8)} ${marks}`)
     }
+    return
+  }
+
+  // ── replay --trace：按录制序重演整篇（DESIGN §7）──
+  if (cmd === "replay" && args.trace) {
+    if (args.at != null) die("replay --trace 整篇按录制序重演，不需要 --at")
+    if (!fs.existsSync(abs + ".trace")) die(`没有录制文件 ${abs}.trace——先用带 --trace 的 run/replay 录一段`)
+    const started = Date.now()
+    const summary = await engine.replayTrace(md, {
+      onChunk: args.json ? undefined : info => process.stderr.write(info.stream === "stdout" ? info.text : `[stderr] ${info.text}`),
+      timeout: args.timeout,
+    })
+    finish()
+    if (args.json) {
+      console.log(JSON.stringify({ ok: !summary.stoppedAt, replay: summary, durationMs: Date.now() - started }, null, 2))
+    } else {
+      for (const line of summary.stale) console.error(`↷ 第 ${line + 1} 行的块在录制后已改动——跳过`)
+      if (summary.stoppedAt) console.error(`停在录制条目 #${summary.stoppedAt.n}（第 ${summary.stoppedAt.line + 1} 行）：${summary.stoppedAt.why === "stale" ? "块已改动" : "执行失败"}`)
+      console.log(`重演完成：${summary.ran}/${summary.total} 条${summary.stale.length ? `（跳过 ${summary.stale.length} 条 stale）` : ""} · ${((Date.now() - started) / 1000).toFixed(1)}s`)
+    }
+    process.exitCode = summary.stoppedAt ? 1 : 0
     return
   }
 
