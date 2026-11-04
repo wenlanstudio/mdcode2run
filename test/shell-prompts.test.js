@@ -4,7 +4,7 @@
  * user@host 还能拿去做远端路由。stripPrompts 默认开（config.STRIP_PROMPTS）。
  */
 const assert = require("assert")
-const { prepareScript, parsePromptTarget } = require("../runners/shell")
+const { prepareScript, parsePromptTarget } = require("../lib/runners/shell")
 
 let passed = 0
 const failures = []

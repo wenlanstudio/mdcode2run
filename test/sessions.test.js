@@ -3,7 +3,7 @@
  * 死亡重建/空闲回收/统一销毁，全部用假会话（不碰任何 JVM）。
  */
 const assert = require("assert")
-const { SessionManager } = require("../sessions")
+const { SessionManager } = require("../lib/sessions")
 
 let passed = 0
 const failures = []

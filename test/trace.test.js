@@ -6,9 +6,9 @@
  * 测试壳铁律：异步用例必须 await（照 sessions.test.js / session-run.test.js 的壳）。
  */
 const assert = require("assert")
-const { serializeTrace, parseTrace, planTrace } = require("../trace")
-const { createJournal } = require("../journal")
-const { fnv1a } = require("../chapter")
+const { serializeTrace, parseTrace, planTrace } = require("../lib/trace")
+const { createJournal } = require("../lib/journal")
+const { fnv1a } = require("../lib/chapter")
 
 let passed = 0
 const failures = []

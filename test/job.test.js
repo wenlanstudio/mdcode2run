@@ -3,8 +3,8 @@
  * 自然退出、日志流、终止。没有本机 bash 时跳过（同 java-session 的门控策略）。
  */
 const assert = require("assert")
-const { findLocalShell } = require("../runners/shell")
-const { startJob } = require("../runners/job")
+const { findLocalShell } = require("../lib/runners/shell")
+const { startJob } = require("../lib/runners/job")
 
 let passed = 0
 const failures = []

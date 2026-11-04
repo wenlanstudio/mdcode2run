@@ -10,9 +10,9 @@
 const assert = require("assert")
 const fs = require("fs")
 const path = require("path")
-const { inspectJavaHome, expandClassPath } = require("../runners/java")
-const { createJShellSession } = require("../runners/java-session")
-const { parseFences } = require("../fences")
+const { inspectJavaHome, expandClassPath } = require("../lib/runners/java")
+const { createJShellSession } = require("../lib/runners/java-session")
+const { parseFences } = require("../lib/fences")
 
 let passed = 0
 const failures = []

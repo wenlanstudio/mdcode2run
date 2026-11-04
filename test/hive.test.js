@@ -5,7 +5,7 @@
  * _PASSWORD / _JDBC_URL），未设则跳过。
  */
 const assert = require("assert")
-const { parseBeelineTsv, buildJdbcUrl, beelineArgs, runHive } = require("../runners/hive")
+const { parseBeelineTsv, buildJdbcUrl, beelineArgs, runHive } = require("../lib/runners/hive")
 
 let passed = 0
 const failures = []

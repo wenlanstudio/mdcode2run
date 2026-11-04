@@ -5,9 +5,9 @@
 const assert = require("assert")
 const fs = require("fs")
 const path = require("path")
-const { createJournal } = require("../journal")
-const { sessionRun, chapterWorkdir } = require("../session-run")
-const { parseFences, parseChapters } = require("../fences")
+const { createJournal } = require("../lib/journal")
+const { sessionRun, chapterWorkdir } = require("../lib/session-run")
+const { parseFences, parseChapters } = require("../lib/fences")
 
 let passed = 0
 const failures = []

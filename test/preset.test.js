@@ -4,7 +4,7 @@
  * 引擎集成用例全部走契约失败路径（checkRuntime / 解析问题壳），无需真 Python。
  */
 const assert = require("assert")
-const { resolveFamily, presetNameOf, BUILTIN_TECHS, BUILTIN_COURSES } = require("../preset")
+const { resolveFamily, presetNameOf, BUILTIN_TECHS, BUILTIN_COURSES } = require("../lib/preset")
 const { createEngine } = require("..")
 
 let passed = 0

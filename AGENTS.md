@@ -57,18 +57,22 @@ mdcode2run 是 Markdown 代码执行引擎：**块角色标注 + 章会话 + fil
 
 ```
 <repo-root>/
-  index.js               引擎门面（createEngine / contractFail）——对外唯一入口，
+  lib/                   引擎实现（bin 与测试之外的全部源码都在这层）
+    index.js             引擎门面（createEngine / contractFail）——对外唯一入口，
                          require("mdcode2run") 只拿到这两个
-  bin/mdcode2run.js      CLI：list / run / replay（--json 走结果契约）
-  fences.js              块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）
-  front-matter.js        前言配置读取（code-exec.<段>.<键> → 顶层旧写法）
-  sessions.js            会话注册表（懒建立 / 并发共享创建 / 死会话重建 / 空闲回收）
-  chapter.js             章计划：setup/file/blocks 清单、内容指纹、file= 物化
-  session-run.js         会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
-  events.js              事件流（started / chunk / done，EventEmitter）
-  languages/             五个语言模块：认语言、查环境、给选项、路由 runner
-  runners/               八个执行器（纯 Node）：python(.session) / java(.session) /
+    fences.js            块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）
+    front-matter.js      前言配置读取（code-exec.<段>.<键> → 顶层旧写法）
+    sessions.js          会话注册表（懒建立 / 并发共享创建 / 死会话重建 / 空闲回收）
+    chapter.js           章计划：setup/file/blocks 清单、内容指纹、file= 物化
+    session-run.js       会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
+    events.js            事件流（started / chunk / done，EventEmitter）
+    journal.js           执行日志（章作用域 ▶ 序列）
+    trace.js             trace sidecar 纯函数层（JSONL 序列化/校验/重演计划）
+    preset.js            preset 六层解析核心（tech/course 装订 + 三护栏）
+    languages/           五个语言模块：认语言、查环境、给选项、路由 runner
+    runners/             八个执行器（纯 Node）：python(.session) / java(.session) /
                          shell / query / hive(beeline) / job
+  bin/mdcode2run.js      CLI：list / run / replay（--json 走结果契约）
   test/                  测试套件（run-all.js 自动纳管新文件）+ fixtures/ 测试标本
   sample/                可运行讲义样本（老师参照用）：python/java 基础，
                          真跑验证过；specimen 命名沿用

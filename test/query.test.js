@@ -7,7 +7,7 @@
 const assert = require("assert")
 const { spawnSync } = require("child_process")
 const net = require("net")
-const { parseMysqlBatch, unescapeBatch, parseSqliteJson, runQuery } = require("../runners/query")
+const { parseMysqlBatch, unescapeBatch, parseSqliteJson, runQuery } = require("../lib/runners/query")
 
 let passed = 0
 const failures = []

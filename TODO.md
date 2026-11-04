@@ -23,7 +23,7 @@ DESIGN.md 是设计权威——本文件记录"做到哪了"与"下一步"，不
   - [ ] 三个常驻 harness（java-session / python-session / shell 的协议部分）收敛成一个
         协议框架——JDK/anaconda 升级砸协议时只改一处；词汇参考 Jupyter message schema
   - [x] **hive 方言族落地**（2026-10-27）：` ```hive `/`hql`/`hiveql`/`sparksql` 围栏接成走
-        beeline 的 query 族（`languages/hive.js` + `runners/hive.js`，注册进 `index.js`
+        beeline 的 query 族（`lib/languages/hive.js` + `lib/runners/hive.js`，注册进 `lib/index.js`
         LANGUAGES）→ deck 自动给 ▶；连接由引擎配置 `hive.*` + 前言 `code-exec.hive.*` 覆盖
         （PASSWORD 仅引擎层）。测试 `test/hive.test.js`（解析+URL 夹具，真实 HS2 由
         MDX_HIVE_HOST 门控）。（原记「` ```sql dialect=hive ` 尚未接线」已随词汇表

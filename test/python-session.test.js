@@ -5,7 +5,7 @@
  */
 const assert = require("assert")
 const fs = require("fs")
-const { createPythonSession } = require("../runners/python-session")
+const { createPythonSession } = require("../lib/runners/python-session")
 
 let passed = 0
 const failures = []

@@ -23,7 +23,7 @@
 
 const fs = require("fs")
 const path = require("path")
-const { createEngine } = require("..")
+const { createEngine } = require("../lib")
 
 const USAGE = `用法:
   mdcode2run list   <file.md> [--json]

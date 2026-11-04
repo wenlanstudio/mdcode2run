@@ -124,18 +124,19 @@ code-exec:
 ## 目录结构
 
 ```
-index.js               引擎门面（parse / locate / run / replay / resetSession / journalOf / traceOf / traceLoad / replayTrace / events）
-journal.js             执行日志（章作用域 ▶ 序列；result.session.seq + journalOf 供宿主渲染）
-trace.js               trace sidecar 纯函数层（JSONL 序列化/校验/重演计划；文件 I/O 在门面）
-preset.js              preset 六层解析核心（tech/course 装订 + 三护栏，纯函数）
+lib/                   引擎实现（bin 与测试之外的全部源码都在这层）
+  index.js             引擎门面（parse / locate / run / replay / resetSession / journalOf / traceOf / traceLoad / replayTrace / events）
+  journal.js           执行日志（章作用域 ▶ 序列；result.session.seq + journalOf 供宿主渲染）
+  trace.js             trace sidecar 纯函数层（JSONL 序列化/校验/重演计划；文件 I/O 在门面）
+  preset.js            preset 六层解析核心（tech/course 装订 + 三护栏，纯函数）
+  fences.js            块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）
+  front-matter.js      前言配置读取（code-exec.<段>.<键> → 顶层旧写法）
+  sessions.js          会话注册表（懒建立 / 并发共享创建 / 死会话重建 / 空闲回收）
+  chapter.js           章计划：setup/file/blocks 清单、内容指纹、file= 物化
+  session-run.js       会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
+  languages/           五个语言模块：认语言、查环境、给选项、路由 runner
+  runners/             八个执行器：python(.session) / java(.session) / shell / query / hive(beeline) / job（纯 Node）
 bin/mdcode2run.js      CLI（list / run / replay，--json 走契约）
-fences.js              块解析：info-string 词汇表 / 分章 / front-matter 子集（纯函数，可单测）
-front-matter.js        前言配置读取（code-exec.<段>.<键> → 顶层旧写法）
-sessions.js            会话注册表（懒建立 / 并发共享创建 / 死会话重建 / 空闲回收）
-chapter.js             章计划：setup/file/blocks 清单、内容指纹、file= 物化
-session-run.js         会话编排：物化 → 引导 → 过期链 → 运行/重放（语言无关）
-languages/             五个语言模块：认语言、查环境、给选项、路由 runner
-runners/               八个执行器：python(.session) / java(.session) / shell / query / hive(beeline) / job（纯 Node）
 test/                   测试套件（run-all.js 自动纳管）；测试标本在 test/fixtures/；真实 JDK / anaconda / mysql / Hive
                        按 MDX_* 门控，缺环境时对应段自动跳过
 sample/                可运行讲义样本（给老师参照）：python / java 基础各一份，
