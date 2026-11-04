@@ -121,6 +121,34 @@ code-exec:
 引擎层配置键是普通对象（`config.java.CLASS_PATH`、`config.shell.MODE/HOST/USER/PASSWORD`…），
 持久化形式由宿主决定。
 
+### Hive 走 SSH 远程执行（本机没有 beeline）
+
+HiveServer2 常只监听集群节点的 `localhost:10000`，本机（尤其 Windows）既没装 Hive 发行版，
+也连不到那个端口。引擎层给 `config.hive.SSH_HOST` 就切到 SSH 通道：SQL 经 ssh 的 stdin
+送到远端 `beeline -f /dev/stdin`，`--silent=true --outputformat=tsv2` 的结果原样回来。
+此时 `HOST/PORT/DATABASE/JDBC_URL` 全按**远端视角**解释，`CLIENT` 是远端 beeline 路径。
+
+```json
+{
+  "hive": {
+    "SSH_HOST": "node0",
+    "SSH_USER": "zhangsan",
+    "CLIENT": "/opt/bigdata/hive/default/bin/beeline",
+    "HOST": "localhost", "PORT": 10000,
+    "DATABASE": "zjsm", "USER": "zhangsan",
+    "TIMEOUT": 60000
+  }
+}
+```
+
+提前配好免密（`ssh zhangsan@node0` 直接可进）；`SSH_BIN` 可钉本机 ssh 绝对路径，
+`SSH_PORT` / `SSH_OPTIONS`（参数数组）按需追加。SQL 只走 stdin，中文、单引号、反引号、
+换行都不经 cmd → ssh → 远端 shell 的解析。Windows 上 Git Bash 版 ssh 的 MSYS 路径转换，
+执行器已用 `MSYS2_ARG_CONV_EXCL` 禁掉。
+
+`SSH_HOST` / `CLIENT`（远端路径）是机器配置，只在引擎层写，讲义 front-matter 无权指定；
+讲义只需 `code-exec.hive.DATABASE` 这类与内容相关的参数。
+
 ## 目录结构
 
 ```
@@ -163,6 +191,8 @@ TODO.md                路线图与已知问题
 - jshell 首次建会话（大 classpath）有秒级预热；`--timeout` 管的是单请求上限（超时会话
   作废、下次重建）。
 - mysql / hive 密码只放引擎层配置；前言层无权携带（讲义分享/进 git 的前提）。
-- Hive 走 beeline：`hive.CLIENT` 需指向可直接执行的 wrapper。beeline 由 Hive 发行版提供
-  （Hadoop 发行版不含）；Windows 上 `beeline.cmd` 不能直接 spawn，需包一层可执行入口。
+- Hive 走 beeline：本地模式 `hive.CLIENT` 需指向可直接执行的 wrapper（beeline 由 Hive
+  发行版提供，Hadoop 发行版不含；Windows 上 `beeline.cmd` 不能直接 spawn，要包一层可执行
+  入口）。本机没有 beeline 或 HS2 只在集群节点上时，配 `hive.SSH_HOST` 走远程通道，见上节。
+  spawn 不到可执行文件时返回中文诊断，不会把 `ENOENT` 原样丢给观众。
 - SQL 方言用直标围栏：` ```hive `/`hql`/`hiveql`/`sparksql `（`dialect=` 标注已删除）。

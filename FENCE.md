@@ -184,11 +184,13 @@ code-exec:
   java:   { class-path: "D:/repo/hadoop-client-3.1.3/*", JAVA_HOME: "D:/jdk-17" }
   python: { PYTHON_PATH: "D:/anaconda3/python.exe" }
   mysql:  { HOST: db.example.com, DATABASE: homework }
-  hive:   { CLIENT: "D:/hive/bin/beeline.cmd", HOST: hs2.example.com }
+  hive:   { HOST: hs2.example.com, DATABASE: homework }
 ---
 ```
 
 - 只支持映射嵌套 + 标量值，不解析 YAML 其余语法；`code-exec:` 段结束于顶层键出现。
+- `hive` 前言层只认 `HOST` / `PORT` / `DATABASE` / `USER` / `JDBC_URL`；`CLIENT`（beeline
+  路径）、`SSH_HOST`（远程通道）属引擎层机器配置，不写进讲义（见 README「Hive 走 SSH」）。
 - **秘密（密码 / ssh 档案）永远不写这里**——只放引擎层 `createEngine({ config })`。
   这是讲义能进 git / 分享的前提。
 - 优先级：fence meta（块级）> front-matter `code-exec:`（文档级）> 引擎层 config。
